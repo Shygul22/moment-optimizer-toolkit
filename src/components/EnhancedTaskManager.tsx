@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +10,11 @@ import { Task } from "@/types/Task";
 import { AITaskPrioritizer } from "@/utils/aiPrioritization";
 import { SmartTaskSuggestions } from "./SmartTaskSuggestions";
 
-export const EnhancedTaskManager = () => {
+interface EnhancedTaskManagerProps {
+  onTasksUpdate?: (tasks: Task[]) => void;
+}
+
+export const EnhancedTaskManager = ({ onTasksUpdate }: EnhancedTaskManagerProps) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState("");
   const [priority, setPriority] = useState<"high" | "medium" | "low">("medium");
@@ -21,6 +24,11 @@ export const EnhancedTaskManager = () => {
   const [energyLevel, setEnergyLevel] = useState<Task['energyLevel']>("medium");
   const [estimatedDuration, setEstimatedDuration] = useState<number>(30);
   const { toast } = useToast();
+
+  const updateTasks = (newTasks: Task[]) => {
+    setTasks(newTasks);
+    onTasksUpdate?.(newTasks);
+  };
 
   const addTask = () => {
     if (!newTask.trim()) return;
@@ -41,7 +49,8 @@ export const EnhancedTaskManager = () => {
     // Calculate AI priority score
     task.aiScore = AITaskPrioritizer.calculatePriorityScore(task);
 
-    setTasks([task, ...tasks]);
+    const newTasks = [task, ...tasks];
+    updateTasks(newTasks);
     setNewTask("");
     toast({
       title: "Smart task added",
@@ -50,13 +59,15 @@ export const EnhancedTaskManager = () => {
   };
 
   const toggleTask = (id: string) => {
-    setTasks(tasks.map(task => 
+    const newTasks = tasks.map(task => 
       task.id === id ? { ...task, completed: !task.completed } : task
-    ));
+    );
+    updateTasks(newTasks);
   };
 
   const deleteTask = (id: string) => {
-    setTasks(tasks.filter(task => task.id !== id));
+    const newTasks = tasks.filter(task => task.id !== id);
+    updateTasks(newTasks);
   };
 
   const handleSuggestionSelect = (task: Task) => {

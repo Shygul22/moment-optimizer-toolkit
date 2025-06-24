@@ -1,12 +1,31 @@
 
 import { useState } from "react";
 import { EnhancedTaskManager } from "@/components/EnhancedTaskManager";
-import { TimeTracker } from "@/components/TimeTracker";
+import { EnhancedTimeTracker } from "@/components/EnhancedTimeTracker";
+import { SmartScheduler } from "@/components/SmartScheduler";
 import { Dashboard } from "@/components/Dashboard";
 import { Navigation } from "@/components/Navigation";
+import { Task } from "@/types/Task";
+import { TimeSession, TimeBlock } from "@/types/TimeTracking";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("tasks");
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [sessions, setSessions] = useState<TimeSession[]>([]);
+  const [activeTimeBlock, setActiveTimeBlock] = useState<TimeBlock | null>(null);
+
+  const handleTasksUpdate = (updatedTasks: Task[]) => {
+    setTasks(updatedTasks);
+  };
+
+  const handleSessionComplete = (session: TimeSession) => {
+    setSessions(prev => [...prev, session]);
+  };
+
+  const handleStartTimeBlock = (block: TimeBlock) => {
+    setActiveTimeBlock(block);
+    setActiveTab("timer"); // Auto-switch to timer tab
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
@@ -29,9 +48,29 @@ const Index = () => {
         <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
         
         <main className="mt-8">
-          {activeTab === "tasks" && <EnhancedTaskManager />}
-          {activeTab === "timer" && <TimeTracker />}
-          {activeTab === "dashboard" && <Dashboard />}
+          {activeTab === "tasks" && (
+            <EnhancedTaskManager 
+              onTasksUpdate={handleTasksUpdate}
+            />
+          )}
+          {activeTab === "timer" && (
+            <div className="space-y-8">
+              <EnhancedTimeTracker 
+                activeTimeBlock={activeTimeBlock}
+                onSessionComplete={handleSessionComplete}
+              />
+              <SmartScheduler 
+                tasks={tasks}
+                onStartTimeBlock={handleStartTimeBlock}
+              />
+            </div>
+          )}
+          {activeTab === "dashboard" && (
+            <Dashboard 
+              tasks={tasks}
+              sessions={sessions}
+            />
+          )}
         </main>
       </div>
     </div>
