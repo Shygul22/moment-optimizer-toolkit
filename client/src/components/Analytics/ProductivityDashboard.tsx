@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AIInsights } from "./AIInsights";
+import { RealtimeInsights } from "./RealtimeInsights";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { 
@@ -330,14 +332,24 @@ export const ProductivityDashboard = ({ timeRange, onTimeRangeChange }: Producti
       </div>
 
       {/* Detailed Analytics */}
-      <Tabs defaultValue="trends" className="w-full">
-        <TabsList className="grid grid-cols-5 w-full">
+      <Tabs defaultValue="realtime" className="w-full">
+        <TabsList className="grid grid-cols-7 w-full">
+          <TabsTrigger value="realtime">Live</TabsTrigger>
+          <TabsTrigger value="insights">AI Insights</TabsTrigger>
           <TabsTrigger value="trends">Trends</TabsTrigger>
           <TabsTrigger value="patterns">Patterns</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="goals">Goals</TabsTrigger>
           <TabsTrigger value="balance">Balance</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="realtime" className="space-y-4">
+          <RealtimeInsights />
+        </TabsContent>
+
+        <TabsContent value="insights" className="space-y-4">
+          <AIInsights />
+        </TabsContent>
 
         <TabsContent value="trends" className="space-y-4">
           <Card>

@@ -11,7 +11,7 @@ export const Navigation = ({ activeTab, setActiveTab }: NavigationProps) => {
   const tabs = [
     { id: "tasks", label: "Tasks", icon: CheckSquare },
     { id: "timer", label: "Timer", icon: Clock },
-    { id: "focus", label: "Focus Mode", icon: Brain },
+    { id: "focus", label: "AI Focus", icon: Brain },
     { id: "analytics", label: "Analytics", icon: TrendingUp },
     { id: "dashboard", label: "Dashboard", icon: BarChart3 },
   ];
