@@ -307,25 +307,25 @@ export const EnhancedTaskManager = () => {
                       {task.title}
                     </p>
                     <div className="flex items-center gap-2 mt-1">
-                      <Badge className={getContextColor(task.context)} size="sm">
+                      <Badge className={getContextColor(task.context)}>
                         {task.context}
                       </Badge>
-                      <Badge variant="outline" size="sm" className="flex items-center gap-1">
+                      <Badge variant="outline" className="flex items-center gap-1">
                         <Target className="w-3 h-3" />
                         {task.impact}
                       </Badge>
-                      <Badge variant="outline" size="sm" className="flex items-center gap-1">
+                      <Badge variant="outline" className="flex items-center gap-1">
                         <Zap className="w-3 h-3" />
                         {task.energyLevel}
                       </Badge>
                       {task.estimatedDuration && (
-                        <Badge variant="outline" size="sm" className="flex items-center gap-1">
+                        <Badge variant="outline" className="flex items-center gap-1">
                           <Clock className="w-3 h-3" />
                           {task.estimatedDuration}min
                         </Badge>
                       )}
                       {task.aiScore && (
-                        <Badge variant="secondary" size="sm" className="bg-indigo-100 text-indigo-700">
+                        <Badge variant="secondary" className="bg-indigo-100 text-indigo-700">
                           AI: {task.aiScore.toFixed(1)}
                         </Badge>
                       )}
