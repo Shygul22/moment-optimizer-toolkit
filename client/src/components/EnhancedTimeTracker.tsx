@@ -133,11 +133,11 @@ export const EnhancedTimeTracker = ({ activeTimeBlock, onSessionComplete }: Enha
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Active Time Block Display */}
       {activeTimeBlock && (
         <Card className="border-2 border-indigo-200 bg-gradient-to-r from-indigo-50 to-purple-50">
-          <CardContent className="p-6">
+          <CardContent className="p-4 lg:p-6">
             <div className="text-center space-y-2">
               <Badge className="bg-indigo-100 text-indigo-700 mb-2">
                 Active Time Block

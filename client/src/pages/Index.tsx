@@ -38,59 +38,93 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      <div className="container mx-auto px-4 py-8">
-        <header className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">
-            <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              AI
-            </span>
-            Time<span className="text-indigo-600">Flow</span>
-          </h1>
-          <p className="text-gray-600">Transform your chaos into focused productivity with AI-powered insights</p>
-          <div className="flex items-center justify-center gap-2 mt-3 text-sm text-indigo-600">
-            <span className="bg-indigo-100 px-3 py-1 rounded-full">Smart Prioritization</span>
-            <span className="bg-purple-100 px-3 py-1 rounded-full">Time Blocking</span>
-            <span className="bg-blue-100 px-3 py-1 rounded-full">Focus Mode</span>
-          </div>
-        </header>
-        
-        <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
-        
-        <main className="mt-8">
+      <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
+      
+      <main className="container mx-auto px-4 py-4 lg:py-8">
+        <div className="max-w-7xl mx-auto">
           {activeTab === "tasks" && (
-            <EnhancedTaskManager 
-              onTasksUpdate={handleTasksUpdate}
-            />
-          )}
-          {activeTab === "timer" && (
-            <div className="space-y-8">
-              <EnhancedTimeTracker 
-                activeTimeBlock={activeTimeBlock}
-                onSessionComplete={handleSessionComplete}
-              />
-              <SmartScheduler 
-                tasks={tasks}
-                onStartTimeBlock={handleStartTimeBlock}
+            <div className="space-y-4 lg:space-y-6">
+              <div className="text-center lg:text-left mb-4 lg:mb-6">
+                <h2 className="text-xl lg:text-3xl font-bold text-gray-800 mb-2">
+                  Smart Task Management
+                </h2>
+                <p className="text-sm lg:text-base text-gray-600">AI-powered prioritization and intelligent suggestions</p>
+              </div>
+              <EnhancedTaskManager 
+                onTasksUpdate={handleTasksUpdate}
               />
             </div>
           )}
+          
+          {activeTab === "timer" && (
+            <div className="space-y-4 lg:space-y-8">
+              <div className="text-center lg:text-left mb-4 lg:mb-6">
+                <h2 className="text-xl lg:text-3xl font-bold text-gray-800 mb-2">
+                  Time Tracking & Scheduling
+                </h2>
+                <p className="text-sm lg:text-base text-gray-600">Enhanced time tracking with smart scheduling</p>
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-8">
+                <div className="lg:col-span-3">
+                  <EnhancedTimeTracker 
+                    activeTimeBlock={activeTimeBlock}
+                    onSessionComplete={handleSessionComplete}
+                  />
+                </div>
+                <div className="lg:col-span-2">
+                  <SmartScheduler 
+                    tasks={tasks}
+                    onStartTimeBlock={handleStartTimeBlock}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+          
           {activeTab === "focus" && (
-            <FocusModeHub 
-              tasks={tasks}
-              onSessionComplete={handleFocusSessionComplete}
-            />
+            <div className="space-y-4 lg:space-y-6">
+              <div className="text-center lg:text-left mb-4 lg:mb-6">
+                <h2 className="text-xl lg:text-3xl font-bold text-gray-800 mb-2">
+                  AI Focus Mode
+                </h2>
+                <p className="text-sm lg:text-base text-gray-600">Deep work sessions with intelligent distraction management</p>
+              </div>
+              <FocusModeHub 
+                tasks={tasks}
+                onSessionComplete={handleFocusSessionComplete}
+              />
+            </div>
           )}
+          
           {activeTab === "dashboard" && (
-            <Dashboard />
+            <div className="space-y-4 lg:space-y-6">
+              <div className="text-center lg:text-left mb-4 lg:mb-6">
+                <h2 className="text-xl lg:text-3xl font-bold text-gray-800 mb-2">
+                  Productivity Dashboard
+                </h2>
+                <p className="text-sm lg:text-base text-gray-600">Overview of your productivity metrics and trends</p>
+              </div>
+              <Dashboard />
+            </div>
           )}
+          
           {activeTab === "analytics" && (
-            <ProductivityDashboard 
-              timeRange={analyticsTimeRange}
-              onTimeRangeChange={setAnalyticsTimeRange}
-            />
+            <div className="space-y-4 lg:space-y-6">
+              <div className="text-center lg:text-left mb-4 lg:mb-6">
+                <h2 className="text-xl lg:text-3xl font-bold text-gray-800 mb-2">
+                  Advanced Analytics
+                </h2>
+                <p className="text-sm lg:text-base text-gray-600">AI-powered behavioral insights and performance analysis</p>
+              </div>
+              <ProductivityDashboard 
+                timeRange={analyticsTimeRange}
+                onTimeRangeChange={setAnalyticsTimeRange}
+              />
+            </div>
           )}
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   );
 };
