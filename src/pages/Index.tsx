@@ -66,10 +66,7 @@ const Index = () => {
             </div>
           )}
           {activeTab === "dashboard" && (
-            <Dashboard 
-              tasks={tasks}
-              sessions={sessions}
-            />
+            <Dashboard />
           )}
         </main>
       </div>
