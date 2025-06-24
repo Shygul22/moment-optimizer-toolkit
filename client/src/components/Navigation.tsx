@@ -1,5 +1,5 @@
 
-import { Clock, CheckSquare, BarChart3 } from "lucide-react";
+import { Clock, CheckSquare, BarChart3, Brain, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface NavigationProps {
@@ -11,6 +11,8 @@ export const Navigation = ({ activeTab, setActiveTab }: NavigationProps) => {
   const tabs = [
     { id: "tasks", label: "Tasks", icon: CheckSquare },
     { id: "timer", label: "Timer", icon: Clock },
+    { id: "focus", label: "Focus Mode", icon: Brain },
+    { id: "analytics", label: "Analytics", icon: TrendingUp },
     { id: "dashboard", label: "Dashboard", icon: BarChart3 },
   ];
 
