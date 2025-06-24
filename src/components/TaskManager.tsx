@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Check, Clock } from "lucide-react";
+import { Plus, Check, Clock, CheckSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Task {
