@@ -217,7 +217,7 @@ export const AdaptivePomodoro = ({
 
   // Timer effect
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: NodeJS.Timeout | undefined;
     
     if (currentSession?.isActive && currentSession.timeRemaining > 0) {
       interval = setInterval(() => {
@@ -242,7 +242,11 @@ export const AdaptivePomodoro = ({
       }, 1000);
     }
 
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
   }, [currentSession?.isActive, currentSession?.timeRemaining]);
 
   const formatTime = (seconds: number): string => {

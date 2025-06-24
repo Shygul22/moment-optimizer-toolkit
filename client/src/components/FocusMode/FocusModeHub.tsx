@@ -2,15 +2,13 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Brain, Timer, Shield, Target, BarChart3 } from "lucide-react";
-
-import { IntelligentFocusSession } from "./IntelligentFocusSession";
-import { DistractionManager } from "./DistractionManager";
 import { AdaptivePomodoro } from "./AdaptivePomodoro";
-import { FocusSession } from "@/types/FocusMode";
+import { DistractionManager } from "./DistractionManager";
+import { IntelligentFocusSession } from "./IntelligentFocusSession";
 import { Task } from "@/types/Task";
+import { FocusSession, Distraction } from "@/types/FocusMode";
 
 interface FocusModeHubProps {
   tasks: Task[];
@@ -38,7 +36,7 @@ export const FocusModeHub = ({ tasks, onSessionComplete }: FocusModeHubProps) =>
     }
   };
 
-  const handleDistractionLogged = (distraction: any) => {
+  const handleDistractionLogged = (distraction: Distraction) => {
     // Update active session with distraction
     if (activeSessionId) {
       setActiveSessions(prev => 
@@ -228,10 +226,10 @@ export const FocusModeHub = ({ tasks, onSessionComplete }: FocusModeHubProps) =>
                         ))}
                       </div>
                       <div className="flex gap-1 mt-2">
-                        <Badge size="sm" variant="outline">
+                        <Badge variant="outline">
                           {task.priority}
                         </Badge>
-                        <Badge size="sm" variant="outline">
+                        <Badge variant="outline">
                           {task.energyLevel}
                         </Badge>
                       </div>

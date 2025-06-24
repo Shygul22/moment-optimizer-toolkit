@@ -34,6 +34,7 @@ export const DistractionManager = ({
   const [notificationBlocking, setNotificationBlocking] = useState(false);
   const [environmentOptimization, setEnvironmentOptimization] = useState(false);
   const [activeInterventions, setActiveInterventions] = useState<string[]>([]);
+  const [timeoutIds, setTimeoutIds] = useState<NodeJS.Timeout[]>([]);
 
   // Simulated distraction detection
   useEffect(() => {
@@ -73,6 +74,13 @@ export const DistractionManager = ({
     return () => clearInterval(interval);
   }, [isSessionActive, onDistractionLogged]);
 
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      timeoutIds.forEach(clearTimeout);
+    };
+  }, [timeoutIds]);
+
   const handleDistraction = (distractionId: string, intervention: string) => {
     setDistractions(prev => 
       prev.map(d => 
@@ -88,9 +96,12 @@ export const DistractionManager = ({
     setFocusScore(prev => Math.min(100, prev + 10));
 
     // Remove intervention after some time
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       setActiveInterventions(prev => prev.filter(i => i !== intervention));
+      setTimeoutIds(prev => prev.filter(id => id !== timeoutId));
     }, 5000);
+    
+    setTimeoutIds(prev => [...prev, timeoutId]);
   };
 
   const getDistractionColor = (type: Distraction["type"]) => {
@@ -257,13 +268,13 @@ export const DistractionManager = ({
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {recentDistractions.reverse().map((distraction) => (
+              {[...recentDistractions].reverse().map((distraction) => (
                 <div 
                   key={distraction.id}
                   className="flex items-center justify-between p-2 bg-gray-50 rounded"
                 >
                   <div className="flex items-center gap-2">
-                    <Badge size="sm" className={getDistractionColor(distraction.type)}>
+                    <Badge className={getDistractionColor(distraction.type)}>
                       {distraction.type}
                     </Badge>
                     <span className="text-sm">{distraction.source}</span>

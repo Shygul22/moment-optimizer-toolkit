@@ -177,7 +177,7 @@ export class TimeBlockingAI {
     blockType: TimeBlock['blockType']
   ): TimeBlock {
     return {
-      id: `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `block-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       title: task.title,
       startTime: timeSlot.start,
       endTime: timeSlot.end,
