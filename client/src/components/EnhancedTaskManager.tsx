@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Check, Clock, CheckSquare, Brain, Zap, Target } from "lucide-react";
+import { Plus, Check, Clock, CheckSquare, Brain, Zap, Target, BarChart3, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Task } from "@/types/Task";
 import { AITaskPrioritizer } from "@/utils/aiPrioritization";
@@ -286,21 +286,118 @@ export const EnhancedTaskManager = ({ onTasksUpdate }: EnhancedTaskManagerProps)
         </CardContent>
       </Card>
 
+      {/* Quick Actions */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Button
+          variant="outline"
+          onClick={() => {
+            const highPriorityTasks = tasks.filter(t => !t.completed && t.priority === 'high');
+            if (highPriorityTasks.length > 0) {
+              toast({
+                title: "Focus Mode",
+                description: `${highPriorityTasks.length} high priority tasks to tackle first`,
+              });
+            } else {
+              toast({
+                title: "All Clear!",
+                description: "No high priority tasks pending",
+              });
+            }
+          }}
+          className="flex items-center gap-2"
+        >
+          <Target className="w-4 h-4" />
+          Focus Mode
+        </Button>
+        
+        <Button
+          variant="outline"
+          onClick={() => {
+            const completedToday = tasks.filter(t => 
+              t.completed && 
+              new Date(t.createdAt).toDateString() === new Date().toDateString()
+            ).length;
+            toast({
+              title: "Today's Progress",
+              description: `${completedToday} tasks completed today`,
+            });
+          }}
+          className="flex items-center gap-2"
+        >
+          <BarChart3 className="w-4 h-4" />
+          Progress
+        </Button>
+        
+        <Button
+          variant="outline"
+          onClick={() => {
+            const quickTasks = tasks.filter(t => !t.completed && (t.estimatedDuration || 0) <= 15);
+            if (quickTasks.length > 0) {
+              toast({
+                title: "Quick Wins",
+                description: `${quickTasks.length} tasks under 15 minutes`,
+              });
+            } else {
+              toast({
+                title: "No Quick Tasks",
+                description: "All remaining tasks need more time",
+              });
+            }
+          }}
+          className="flex items-center gap-2"
+        >
+          <Zap className="w-4 h-4" />
+          Quick Wins
+        </Button>
+        
+        <Button
+          variant="outline"
+          onClick={() => {
+            const completedTasks = tasks.filter(t => t.completed);
+            if (completedTasks.length > 0) {
+              const updatedTasks = tasks.filter(t => !t.completed);
+              updateTasks(updatedTasks);
+              toast({
+                title: "Cleanup Complete",
+                description: `Removed ${completedTasks.length} completed tasks`,
+              });
+            } else {
+              toast({
+                title: "Nothing to Clear",
+                description: "No completed tasks to remove",
+              });
+            }
+          }}
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Clear Done
+        </Button>
+      </div>
+
       {/* Enhanced Task List */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            Your Tasks
-            <Badge variant="secondary" className="ml-2">
-              AI Sorted
-            </Badge>
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              Your Tasks
+              <Badge variant="secondary" className="ml-2">
+                AI Sorted
+              </Badge>
+            </CardTitle>
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <span>{tasks.filter(t => !t.completed).length} active</span>
+              <span>•</span>
+              <span>{tasks.filter(t => t.completed).length} done</span>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {sortedTasks.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <CheckSquare size={48} className="mx-auto mb-4 opacity-50" />
-              <p>No tasks yet. Add one above to get AI-powered recommendations!</p>
+              <p className="text-lg font-medium mb-2">Ready to be productive?</p>
+              <p>Add your first task above and let AI help prioritize your day!</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -325,29 +422,22 @@ export const EnhancedTaskManager = ({ onTasksUpdate }: EnhancedTaskManagerProps)
                   </button>
                   
                   <div className="flex-1">
-                    <p className={`font-medium ${task.completed ? "line-through text-gray-500" : "text-gray-800"}`}>
-                      {task.title}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge className={getContextColor(task.context)}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className={`font-medium flex-1 ${task.completed ? "line-through text-gray-500" : "text-gray-800"}`}>
+                        {task.title}
+                      </p>
+                      {task.estimatedDuration && (
+                        <span className="text-xs text-gray-400">
+                          {task.estimatedDuration}min
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge className={getContextColor(task.context)} size="sm">
                         {task.context}
                       </Badge>
-                      <Badge variant="outline" className="flex items-center gap-1">
-                        <Target className="w-3 h-3" />
-                        {task.impact}
-                      </Badge>
-                      <Badge variant="outline" className="flex items-center gap-1">
-                        <Zap className="w-3 h-3" />
-                        {task.energyLevel}
-                      </Badge>
-                      {task.estimatedDuration && (
-                        <Badge variant="outline" className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {task.estimatedDuration}min
-                        </Badge>
-                      )}
                       {task.aiScore && (
-                        <Badge variant="secondary" className="bg-indigo-100 text-indigo-700">
+                        <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 text-xs">
                           AI: {task.aiScore.toFixed(1)}
                         </Badge>
                       )}
@@ -362,9 +452,9 @@ export const EnhancedTaskManager = ({ onTasksUpdate }: EnhancedTaskManagerProps)
                     variant="ghost"
                     size="sm"
                     onClick={() => deleteTask(task.id)}
-                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2"
                   >
-                    Delete
+                    ×
                   </Button>
                 </div>
               ))}
