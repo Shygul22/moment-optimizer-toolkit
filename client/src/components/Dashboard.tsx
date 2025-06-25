@@ -27,60 +27,102 @@ export const Dashboard = () => {
   const [isLive, setIsLive] = useState(true);
   const [activeMetric, setActiveMetric] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month'>('today');
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Real-time data state
+  // Dynamic data state
   const [stats, setStats] = useState({
-    tasksCompleted: 12,
-    timeTracked: 272, // minutes
-    averageSession: 25,
-    productivity: 85,
-    focusScore: 92,
-    streakDays: 7,
+    tasksCompleted: 0,
+    timeTracked: 0, // minutes
+    focusScore: 0,
+    streakDays: 0,
     todayGoal: 480, // 8 hours in minutes
     currentSessionTime: 0,
   });
 
   const [realtimeData, setRealtimeData] = useState({
-    currentFocus: 85,
+    currentFocus: 75,
     energyLevel: 70,
-    interruptions: 3,
-    currentTask: "Enhanced Dashboard Development",
-    sessionStartTime: new Date(Date.now() - 1800000), // 30 minutes ago
+    interruptions: 0,
+    currentTask: "",
+    sessionStartTime: new Date(),
   });
 
-  const [weeklyData, setWeeklyData] = useState([
-    { day: "Mon", hours: 6.5, tasks: 8, productivity: 78, trend: "up" },
-    { day: "Tue", hours: 7.2, tasks: 12, productivity: 85, trend: "up" },
-    { day: "Wed", hours: 5.8, tasks: 6, productivity: 72, trend: "down" },
-    { day: "Thu", hours: 8.1, tasks: 15, productivity: 92, trend: "up" },
-    { day: "Fri", hours: 6.9, tasks: 10, productivity: 88, trend: "up" },
-    { day: "Sat", hours: 3.2, tasks: 4, productivity: 65, trend: "down" },
-    { day: "Sun", hours: 2.1, tasks: 2, productivity: 60, trend: "stable" },
-  ]);
+  const [weeklyData, setWeeklyData] = useState<{
+    day: string;
+    hours: number;
+    tasks: number;
+    productivity: number;
+    trend: string;
+  }[]>([]);
 
-  // Live updates simulation
+  // Fetch dashboard data from API
+  const fetchDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Fetch dashboard stats
+      const statsResponse = await fetch('/api/dashboard/stats');
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json();
+        setStats(prev => ({
+          ...prev,
+          tasksCompleted: statsData.tasksCompleted,
+          timeTracked: statsData.timeTracked,
+          focusScore: statsData.focusScore,
+          streakDays: statsData.streakDays,
+          currentSessionTime: statsData.currentSessionTime,
+        }));
+      }
+
+      // Fetch weekly activity
+      const weeklyResponse = await fetch('/api/dashboard/weekly-activity');
+      if (weeklyResponse.ok) {
+        const weeklyActivityData = await weeklyResponse.json();
+        setWeeklyData(weeklyActivityData);
+      }
+
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      setIsLoading(false);
+    }
+  };
+
+  // Load data on component mount
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  // Live updates
   useEffect(() => {
     if (!isLive) return;
 
     const interval = setInterval(() => {
       setCurrentTime(new Date());
       
-      // Update session time
-      setStats(prev => ({
-        ...prev,
-        currentSessionTime: prev.currentSessionTime + 1,
-      }));
+      // Update session time if there's an active session
+      if (stats.currentSessionTime > 0) {
+        setStats(prev => ({
+          ...prev,
+          currentSessionTime: prev.currentSessionTime + 1,
+        }));
+      }
 
-      // Simulate focus score fluctuation
+      // Refresh data periodically
+      if (Math.random() < 0.1) { // 10% chance every minute to refresh
+        fetchDashboardData();
+      }
+
+      // Simulate focus score fluctuation for demo
       setRealtimeData(prev => ({
         ...prev,
-        currentFocus: Math.max(60, Math.min(100, prev.currentFocus + (Math.random() - 0.5) * 5)),
-        energyLevel: Math.max(40, Math.min(100, prev.energyLevel + (Math.random() - 0.5) * 3)),
+        currentFocus: Math.max(60, Math.min(100, prev.currentFocus + (Math.random() - 0.5) * 3)),
+        energyLevel: Math.max(40, Math.min(100, prev.energyLevel + (Math.random() - 0.5) * 2)),
       }));
     }, 60000); // Update every minute
 
     return () => clearInterval(interval);
-  }, [isLive]);
+  }, [isLive, stats.currentSessionTime]);
 
   const formatTime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
@@ -101,8 +143,19 @@ export const Dashboard = () => {
     }
   };
 
-  const maxHours = Math.max(...weeklyData.map(d => d.hours));
+  const maxHours = weeklyData.length > 0 ? Math.max(...weeklyData.map(d => d.hours)) : 1;
   const todayProgress = (stats.timeTracked / stats.todayGoal) * 100;
+
+  if (isLoading) {
+    return (
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex items-center justify-center py-12">
+          <RefreshCw className="w-8 h-8 animate-spin text-indigo-600" />
+          <span className="ml-2 text-lg text-gray-600">Loading dashboard...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -143,8 +196,8 @@ export const Dashboard = () => {
             {isLive ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
           </Button>
           
-          <Button variant="outline" size="sm">
-            <RefreshCw className="w-4 h-4" />
+          <Button variant="outline" size="sm" onClick={fetchDashboardData} disabled={isLoading}>
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
       </div>
@@ -157,9 +210,9 @@ export const Dashboard = () => {
               <div className="flex items-center gap-3">
                 <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
                 <div>
-                  <p className="font-medium text-gray-800">{realtimeData.currentTask}</p>
+                  <p className="font-medium text-gray-800">Active Work Session</p>
                   <p className="text-sm text-gray-600">
-                    Active session: {formatSessionTime(realtimeData.sessionStartTime)}
+                    Session time: {formatTime(stats.currentSessionTime)}
                   </p>
                 </div>
               </div>
