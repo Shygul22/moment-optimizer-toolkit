@@ -17,6 +17,7 @@ interface EnhancedTaskManagerProps {
 export const EnhancedTaskManager = ({ onTasksUpdate }: EnhancedTaskManagerProps) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [priority, setPriority] = useState<"high" | "medium" | "low">("medium");
   const [context, setContext] = useState<Task['context']>("work");
   const [impact, setImpact] = useState<1 | 2 | 3 | 4 | 5>(3);
@@ -30,20 +31,84 @@ export const EnhancedTaskManager = ({ onTasksUpdate }: EnhancedTaskManagerProps)
     onTasksUpdate?.(newTasks);
   };
 
+  // Smart defaults based on task content analysis
+  const getSmartDefaults = (taskTitle: string) => {
+    const title = taskTitle.toLowerCase();
+    
+    // Determine context based on keywords
+    let context: Task['context'] = "work";
+    if (title.includes("buy") || title.includes("grocery") || title.includes("personal") || title.includes("family")) {
+      context = "personal";
+    } else if (title.includes("learn") || title.includes("study") || title.includes("course") || title.includes("read")) {
+      context = "learning";
+    } else if (title.includes("creative") || title.includes("design") || title.includes("write") || title.includes("brainstorm")) {
+      context = "creative";
+    } else if (title.includes("admin") || title.includes("paperwork") || title.includes("form") || title.includes("email")) {
+      context = "administrative";
+    }
+    
+    // Determine priority based on urgency words
+    let priority: "high" | "medium" | "low" = "medium";
+    if (title.includes("urgent") || title.includes("asap") || title.includes("deadline") || title.includes("important")) {
+      priority = "high";
+    } else if (title.includes("later") || title.includes("sometime") || title.includes("maybe")) {
+      priority = "low";
+    }
+    
+    // Estimate duration based on task type
+    let estimatedDuration = 30;
+    if (title.includes("quick") || title.includes("brief") || title.includes("check")) {
+      estimatedDuration = 15;
+    } else if (title.includes("meeting") || title.includes("call")) {
+      estimatedDuration = 60;
+    } else if (title.includes("project") || title.includes("develop") || title.includes("create")) {
+      estimatedDuration = 120;
+    }
+    
+    // Determine complexity
+    let complexity: 1 | 2 | 3 | 4 | 5 = 3;
+    if (title.includes("simple") || title.includes("easy") || title.includes("quick")) {
+      complexity = 2;
+    } else if (title.includes("complex") || title.includes("difficult") || title.includes("project")) {
+      complexity = 4;
+    }
+    
+    // Determine impact
+    let impact: 1 | 2 | 3 | 4 | 5 = 3;
+    if (title.includes("critical") || title.includes("important") || title.includes("key")) {
+      impact = 4;
+    } else if (title.includes("minor") || title.includes("small")) {
+      impact = 2;
+    }
+    
+    // Determine energy level
+    let energyLevel: "low" | "medium" | "high" = "medium";
+    if (title.includes("creative") || title.includes("brainstorm") || title.includes("planning")) {
+      energyLevel = "high";
+    } else if (title.includes("admin") || title.includes("email") || title.includes("organize")) {
+      energyLevel = "low";
+    }
+    
+    return { context, priority, estimatedDuration, complexity, impact, energyLevel };
+  };
+
   const addTask = () => {
     if (!newTask.trim()) return;
 
+    // Smart defaults based on task content
+    const smartDefaults = getSmartDefaults(newTask.trim());
+    
     const task: Task = {
       id: Date.now().toString(),
-      title: newTask,
-      priority,
+      title: newTask.trim(),
+      priority: showAdvanced ? priority : smartDefaults.priority,
       completed: false,
       createdAt: new Date(),
-      complexity,
-      impact,
-      context,
-      energyLevel,
-      estimatedDuration,
+      complexity: showAdvanced ? complexity : smartDefaults.complexity,
+      impact: showAdvanced ? impact : smartDefaults.impact,
+      context: showAdvanced ? context : smartDefaults.context,
+      energyLevel: showAdvanced ? energyLevel : smartDefaults.energyLevel,
+      estimatedDuration: showAdvanced ? estimatedDuration : smartDefaults.estimatedDuration,
     };
 
     // Calculate AI priority score
@@ -52,9 +117,22 @@ export const EnhancedTaskManager = ({ onTasksUpdate }: EnhancedTaskManagerProps)
     const newTasks = [task, ...tasks];
     updateTasks(newTasks);
     setNewTask("");
+    
+    // Reset to defaults only if not using advanced mode
+    if (!showAdvanced) {
+      setPriority("medium");
+      setContext("work");
+      setEnergyLevel("medium");
+      setImpact(3);
+      setComplexity(3);
+      setEstimatedDuration(30);
+    }
+    
     toast({
-      title: "Smart task added",
-      description: `Task prioritized with AI score: ${task.aiScore?.toFixed(1)}`,
+      title: "Task added",
+      description: showAdvanced 
+        ? `Task created with AI score: ${task.aiScore?.toFixed(1)}`
+        : `AI automatically set ${smartDefaults.context} context, ${smartDefaults.priority} priority`,
     });
   };
 
@@ -165,112 +243,83 @@ export const EnhancedTaskManager = ({ onTasksUpdate }: EnhancedTaskManagerProps)
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Brain className="w-5 h-5" />
-            Add Smart Task
+            Add Task
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <Input
-              placeholder="Enter your task..."
-              value={newTask}
-              onChange={(e) => setNewTask(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && addTask()}
-              className="text-lg"
-            />
-            
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Priority</label>
-                <Select value={priority} onValueChange={(value: "high" | "medium" | "low") => setPriority(value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="low">Low</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Context</label>
-                <Select value={context} onValueChange={(value: Task['context']) => setContext(value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="work">Work</SelectItem>
-                    <SelectItem value="personal">Personal</SelectItem>
-                    <SelectItem value="creative">Creative</SelectItem>
-                    <SelectItem value="administrative">Administrative</SelectItem>
-                    <SelectItem value="learning">Learning</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Energy Level</label>
-                <Select value={energyLevel} onValueChange={(value: Task['energyLevel']) => setEnergyLevel(value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low Energy</SelectItem>
-                    <SelectItem value="medium">Medium Energy</SelectItem>
-                    <SelectItem value="high">High Energy</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Impact (1-5)</label>
-                <Select value={impact.toString()} onValueChange={(value) => setImpact(parseInt(value) as 1 | 2 | 3 | 4 | 5)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1 - Low Impact</SelectItem>
-                    <SelectItem value="2">2 - Minor Impact</SelectItem>
-                    <SelectItem value="3">3 - Moderate Impact</SelectItem>
-                    <SelectItem value="4">4 - High Impact</SelectItem>
-                    <SelectItem value="5">5 - Critical Impact</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Complexity (1-5)</label>
-                <Select value={complexity.toString()} onValueChange={(value) => setComplexity(parseInt(value) as 1 | 2 | 3 | 4 | 5)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1 - Very Simple</SelectItem>
-                    <SelectItem value="2">2 - Simple</SelectItem>
-                    <SelectItem value="3">3 - Moderate</SelectItem>
-                    <SelectItem value="4">4 - Complex</SelectItem>
-                    <SelectItem value="5">5 - Very Complex</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Duration (min)</label>
-                <Input
-                  type="number"
-                  value={estimatedDuration}
-                  onChange={(e) => setEstimatedDuration(parseInt(e.target.value) || 30)}
-                  min="5"
-                  max="480"
-                />
-              </div>
+            <div className="flex gap-2">
+              <Input
+                placeholder="What do you need to do?"
+                value={newTask}
+                onChange={(e) => setNewTask(e.target.value)}
+                onKeyPress={(e) => e.key === "Enter" && addTask()}
+                className="text-lg flex-1"
+              />
+              <Button onClick={addTask} className="bg-indigo-600 hover:bg-indigo-700 px-6">
+                <Plus size={18} className="mr-2" />
+                Add
+              </Button>
             </div>
             
-            <Button onClick={addTask} className="bg-indigo-600 hover:bg-indigo-700 w-full">
-              <Plus size={18} className="mr-2" />
-              Add Smart Task
-            </Button>
+            {/* Optional: Show advanced options toggle */}
+            <div className="flex items-center justify-between text-sm text-gray-500">
+              <span>AI will automatically set priority, complexity, and context</span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                className="text-xs"
+              >
+                {showAdvanced ? "Hide" : "Show"} Options
+              </Button>
+            </div>
+            
+            {/* Advanced options - collapsed by default */}
+            {showAdvanced && (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Priority</label>
+                  <Select value={priority} onValueChange={(value: "high" | "medium" | "low") => setPriority(value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="low">Low</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Context</label>
+                  <Select value={context} onValueChange={(value: Task['context']) => setContext(value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="work">Work</SelectItem>
+                      <SelectItem value="personal">Personal</SelectItem>
+                      <SelectItem value="creative">Creative</SelectItem>
+                      <SelectItem value="administrative">Administrative</SelectItem>
+                      <SelectItem value="learning">Learning</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Duration (min)</label>
+                  <Input
+                    type="number"
+                    value={estimatedDuration}
+                    onChange={(e) => setEstimatedDuration(parseInt(e.target.value) || 30)}
+                    min="5"
+                    max="480"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
