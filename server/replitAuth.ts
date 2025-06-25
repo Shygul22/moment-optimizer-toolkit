@@ -31,7 +31,7 @@ export function getSession() {
     ttl: sessionTtl,
     tableName: "sessions",
   });
-  const sessionSecret = process.env.SESSION_SECRET;
+  const sessionSecret = process.env.SESSION_SECRET || "development-secret-key-please-change-in-production";
   if (!sessionSecret) {
     throw new Error("SESSION_SECRET environment variable is required");
   }
