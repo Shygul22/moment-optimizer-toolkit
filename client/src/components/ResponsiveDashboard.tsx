@@ -45,37 +45,11 @@ export const ResponsiveDashboard = () => {
     currentSessionTime: 0
   }, isLoading: statsLoading } = useQuery({
     queryKey: ["/api/dashboard/stats"],
-    onError: (error: Error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-    },
   });
 
   // Fetch weekly activity
   const { data: weeklyActivity = [], isLoading: activityLoading } = useQuery({
     queryKey: ["/api/dashboard/activity"],
-    onError: (error: Error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-    },
   });
 
   useEffect(() => {

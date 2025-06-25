@@ -26,19 +26,6 @@ export const EnhancedTaskManager = ({ onTasksUpdate }: EnhancedTaskManagerProps)
   // Fetch tasks from API
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ["/api/tasks"],
-    onError: (error: Error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-    },
   });
 
   // Create task mutation
