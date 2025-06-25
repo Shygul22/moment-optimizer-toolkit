@@ -53,75 +53,125 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user || undefined;
+    try {
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      return user || undefined;
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      return undefined;
+    }
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user || undefined;
+    try {
+      const [user] = await db.select().from(users).where(eq(users.username, username));
+      return user || undefined;
+    } catch (error) {
+      console.error('Error fetching user by username:', error);
+      return undefined;
+    }
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(insertUser)
-      .returning();
-    return user;
+    try {
+      const [user] = await db
+        .insert(users)
+        .values(insertUser)
+        .returning();
+      return user;
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw error;
+    }
   }
 
   // Task methods
   async getTasks(userId: number): Promise<Task[]> {
-    return await db.select().from(tasks).where(eq(tasks.userId, userId)).orderBy(desc(tasks.createdAt));
+    try {
+      return await db.select().from(tasks).where(eq(tasks.userId, userId)).orderBy(desc(tasks.createdAt));
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+      return [];
+    }
   }
 
   async createTask(task: InsertTask): Promise<Task> {
-    const [newTask] = await db
-      .insert(tasks)
-      .values(task)
-      .returning();
-    return newTask;
+    try {
+      const [newTask] = await db
+        .insert(tasks)
+        .values(task)
+        .returning();
+      return newTask;
+    } catch (error) {
+      console.error('Error creating task:', error);
+      throw error;
+    }
   }
 
   async updateTask(id: number, updates: Partial<InsertTask>): Promise<Task | undefined> {
-    const [updatedTask] = await db
-      .update(tasks)
-      .set(updates)
-      .where(eq(tasks.id, id))
-      .returning();
-    return updatedTask || undefined;
+    try {
+      const [updatedTask] = await db
+        .update(tasks)
+        .set(updates)
+        .where(eq(tasks.id, id))
+        .returning();
+      return updatedTask || undefined;
+    } catch (error) {
+      console.error('Error updating task:', error);
+      return undefined;
+    }
   }
 
   async deleteTask(id: number): Promise<boolean> {
-    const result = await db.delete(tasks).where(eq(tasks.id, id));
-    return (result.rowCount ?? 0) > 0;
+    try {
+      const result = await db.delete(tasks).where(eq(tasks.id, id));
+      return (result.rowCount ?? 0) > 0;
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      return false;
+    }
   }
 
   // Time session methods
   async getTimeSessions(userId: number, limit: number = 50): Promise<TimeSession[]> {
-    return await db
-      .select()
-      .from(timeSessions)
-      .where(eq(timeSessions.userId, userId))
-      .orderBy(desc(timeSessions.startTime))
-      .limit(limit);
+    try {
+      return await db
+        .select()
+        .from(timeSessions)
+        .where(eq(timeSessions.userId, userId))
+        .orderBy(desc(timeSessions.startTime))
+        .limit(limit);
+    } catch (error) {
+      console.error('Error fetching time sessions:', error);
+      return [];
+    }
   }
 
   async createTimeSession(session: InsertTimeSession): Promise<TimeSession> {
-    const [newSession] = await db
-      .insert(timeSessions)
-      .values(session)
-      .returning();
-    return newSession;
+    try {
+      const [newSession] = await db
+        .insert(timeSessions)
+        .values(session)
+        .returning();
+      return newSession;
+    } catch (error) {
+      console.error('Error creating time session:', error);
+      throw error;
+    }
   }
 
   async updateTimeSession(id: number, updates: Partial<InsertTimeSession>): Promise<TimeSession | undefined> {
-    const [updatedSession] = await db
-      .update(timeSessions)
-      .set(updates)
-      .where(eq(timeSessions.id, id))
-      .returning();
-    return updatedSession || undefined;
+    try {
+      const [updatedSession] = await db
+        .update(timeSessions)
+        .set(updates)
+        .where(eq(timeSessions.id, id))
+        .returning();
+      return updatedSession || undefined;
+    } catch (error) {
+      console.error('Error updating time session:', error);
+      return undefined;
+    }
   }
 
   // Dashboard data methods
@@ -132,6 +182,7 @@ export class DatabaseStorage implements IStorage {
     streakDays: number;
     currentSessionTime: number;
   }> {
+    try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
@@ -219,12 +270,22 @@ export class DatabaseStorage implements IStorage {
     }
 
     return {
-      tasksCompleted: Number(tasksResult.count) || 0,
-      timeTracked: Number(timeResult.totalTime) || 0,
-      focusScore: Math.round(Number(timeResult.avgFocus) || 75),
+      tasksCompleted: Number(tasksResult?.count) || 0,
+      timeTracked: Number(timeResult?.totalTime) || 0,
+      focusScore: Math.round(Number(timeResult?.avgFocus) || 75),
       streakDays,
       currentSessionTime
     };
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+      return {
+        tasksCompleted: 0,
+        timeTracked: 0,
+        focusScore: 75,
+        streakDays: 0,
+        currentSessionTime: 0
+      };
+    }
   }
 
   async getWeeklyActivity(userId: number): Promise<{
@@ -234,67 +295,72 @@ export class DatabaseStorage implements IStorage {
     productivity: number;
     trend: string;
   }[]> {
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const result = [];
-    
-    for (let i = 0; i < 7; i++) {
-      const date = new Date();
-      date.setDate(date.getDate() - (6 - i));
-      date.setHours(0, 0, 0, 0);
-      const nextDay = new Date(date);
-      nextDay.setDate(nextDay.getDate() + 1);
+    try {
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const result = [];
       
-      // Get day's sessions
-      const [sessionsResult] = await db
-        .select({ 
-          totalTime: sql<number>`sum(duration)`,
-          avgFocus: sql<number>`avg(focus_quality)`
-        })
-        .from(timeSessions)
-        .where(
-          and(
-            eq(timeSessions.userId, userId),
-            gte(timeSessions.startTime, date),
-            lte(timeSessions.startTime, nextDay),
-            eq(timeSessions.completed, true)
-          )
-        );
+      for (let i = 0; i < 7; i++) {
+        const date = new Date();
+        date.setDate(date.getDate() - (6 - i));
+        date.setHours(0, 0, 0, 0);
+        const nextDay = new Date(date);
+        nextDay.setDate(nextDay.getDate() + 1);
+        
+        // Get day's sessions
+        const [sessionsResult] = await db
+          .select({ 
+            totalTime: sql<number>`sum(duration)`,
+            avgFocus: sql<number>`avg(focus_quality)`
+          })
+          .from(timeSessions)
+          .where(
+            and(
+              eq(timeSessions.userId, userId),
+              gte(timeSessions.startTime, date),
+              lte(timeSessions.startTime, nextDay),
+              eq(timeSessions.completed, true)
+            )
+          );
 
-      // Get day's completed tasks
-      const [tasksResult] = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(tasks)
-        .where(
-          and(
-            eq(tasks.userId, userId),
-            eq(tasks.completed, true),
-            gte(tasks.createdAt, date),
-            lte(tasks.createdAt, nextDay)
-          )
-        );
+        // Get day's completed tasks
+        const [tasksResult] = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(tasks)
+          .where(
+            and(
+              eq(tasks.userId, userId),
+              eq(tasks.completed, true),
+              gte(tasks.createdAt, date),
+              lte(tasks.createdAt, nextDay)
+            )
+          );
 
-      const hours = (Number(sessionsResult.totalTime) || 0) / 60;
-      const taskCount = Number(tasksResult.count) || 0;
-      const productivity = Math.round(Number(sessionsResult.avgFocus) || 60);
-      
-      // Simple trend calculation
-      let trend = 'stable';
-      if (i > 0) {
-        const prevProductivity = result[i - 1]?.productivity || productivity;
-        if (productivity > prevProductivity + 5) trend = 'up';
-        else if (productivity < prevProductivity - 5) trend = 'down';
+        const hours = (Number(sessionsResult?.totalTime) || 0) / 60;
+        const taskCount = Number(tasksResult?.count) || 0;
+        const productivity = Math.round(Number(sessionsResult?.avgFocus) || 60);
+        
+        // Simple trend calculation
+        let trend = 'stable';
+        if (i > 0) {
+          const prevProductivity = result[i - 1]?.productivity || productivity;
+          if (productivity > prevProductivity + 5) trend = 'up';
+          else if (productivity < prevProductivity - 5) trend = 'down';
+        }
+
+        result.push({
+          day: days[date.getDay()],
+          hours: Math.round(hours * 10) / 10,
+          tasks: taskCount,
+          productivity,
+          trend
+        });
       }
-
-      result.push({
-        day: days[date.getDay()],
-        hours: Math.round(hours * 10) / 10,
-        tasks: taskCount,
-        productivity,
-        trend
-      });
+      
+      return result;
+    } catch (error) {
+      console.error('Error fetching weekly activity:', error);
+      return [];
     }
-    
-    return result;
   }
 }
 
