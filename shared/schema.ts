@@ -1,60 +1,85 @@
-import { pgTable, serial, text, timestamp, boolean, integer, real, json } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  varchar,
+  timestamp,
+  jsonb,
+  index,
+  integer,
+  boolean,
+  serial,
+  decimal,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Session storage table.
+// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// User storage table.
+// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  id: varchar("id").primaryKey().notNull(),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Tasks table
 export const tasks = pgTable("tasks", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  title: text("title").notNull(),
-  priority: text("priority").notNull(), // 'high' | 'medium' | 'low'
-  completed: boolean("completed").default(false).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  title: varchar("title", { length: 500 }).notNull(),
+  priority: varchar("priority", { length: 10 }).notNull().default("medium"), // high, medium, low
+  completed: boolean("completed").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
   dueDate: timestamp("due_date"),
-  estimatedDuration: integer("estimated_duration"), // minutes
-  complexity: integer("complexity").notNull(), // 1-5
-  impact: integer("impact").notNull(), // 1-5
-  context: text("context").notNull(), // 'work' | 'personal' | 'creative' | 'administrative' | 'learning'
-  energyLevel: text("energy_level").notNull(), // 'low' | 'medium' | 'high'
-  aiScore: real("ai_score"),
+  estimatedDuration: integer("estimated_duration"), // in minutes
+  complexity: integer("complexity").default(3), // 1-5
+  impact: integer("impact").default(3), // 1-5
+  context: varchar("context", { length: 50 }).default("work"), // work, personal, creative, administrative, learning
+  energyLevel: varchar("energy_level", { length: 10 }).default("medium"), // low, medium, high
+  aiScore: decimal("ai_score", { precision: 5, scale: 2 }),
 });
 
+// Time sessions table
 export const timeSessions = pgTable("time_sessions", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  taskId: integer("task_id"),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  taskId: integer("task_id").references(() => tasks.id, { onDelete: "set null" }),
   startTime: timestamp("start_time").notNull(),
   endTime: timestamp("end_time"),
-  duration: integer("duration"), // minutes
-  sessionType: text("session_type").notNull(), // 'focus' | 'break' | 'planning' | 'review'
-  energyLevel: integer("energy_level").notNull(), // 1-5
-  focusQuality: integer("focus_quality").notNull(), // 1-5
-  interruptions: integer("interruptions").default(0).notNull(),
+  duration: integer("duration"), // in minutes
+  sessionType: varchar("session_type", { length: 20 }).notNull().default("focus"), // focus, break, planning, review
+  energyLevel: integer("energy_level").default(3), // 1-5
+  focusQuality: integer("focus_quality").default(3), // 1-5
+  interruptions: integer("interruptions").default(0),
   notes: text("notes"),
-  completed: boolean("completed").default(false).notNull(),
+  completed: boolean("completed").notNull().default(false),
 });
 
+// Productivity metrics table
 export const productivityMetrics = pgTable("productivity_metrics", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   date: timestamp("date").notNull(),
-  totalFocusTime: integer("total_focus_time").notNull(), // minutes
-  averageFocusQuality: real("average_focus_quality").notNull(),
-  tasksCompleted: integer("tasks_completed").notNull(),
-  energyPattern: json("energy_pattern"), // { hour: number; level: number }[]
-  peakHours: json("peak_hours"), // number[]
-  productivityScore: integer("productivity_score").notNull(),
-  goalAchievement: real("goal_achievement").notNull(), // percentage
-});
-
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+  totalFocusTime: integer("total_focus_time").default(0), // minutes
+  averageFocusQuality: decimal("average_focus_quality", { precision: 3, scale: 2 }),
+  tasksCompleted: integer("tasks_completed").default(0),
+  productivityScore: decimal("productivity_score", { precision: 5, scale: 2 }),
+  goalAchievement: decimal("goal_achievement", { precision: 5, scale: 2 }), // percentage
 });
 
 export const insertTaskSchema = createInsertSchema(tasks).omit({
@@ -70,7 +95,7 @@ export const insertProductivityMetricSchema = createInsertSchema(productivityMet
   id: true,
 });
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
+export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type Task = typeof tasks.$inferSelect;
 export type InsertTask = z.infer<typeof insertTaskSchema>;

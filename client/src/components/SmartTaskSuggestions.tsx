@@ -3,8 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Brain, Clock, Zap, Target } from "lucide-react";
-import { Task } from "@/types/Task";
-import { AITaskPrioritizer } from "@/utils/aiPrioritization";
+import { Task } from "@shared/schema";
 
 interface SmartTaskSuggestionsProps {
   tasks: Task[];
@@ -12,9 +11,18 @@ interface SmartTaskSuggestionsProps {
 }
 
 export const SmartTaskSuggestions = ({ tasks, onSelectTask }: SmartTaskSuggestionsProps) => {
-  const suggestions = AITaskPrioritizer.getSmartSuggestions(tasks);
+  // Simple prioritization - show high priority incomplete tasks
+  const suggestions = tasks
+    .filter(task => !task.completed)
+    .sort((a, b) => {
+      const priorityOrder = { high: 3, medium: 2, low: 1 };
+      return priorityOrder[b.priority] - priorityOrder[a.priority];
+    })
+    .slice(0, 3);
+  
   const currentHour = new Date().getHours();
-  const recommendedEnergy = AITaskPrioritizer.getEnergyRecommendation(currentHour);
+  const recommendedEnergy = currentHour >= 9 && currentHour <= 11 ? 'high' : 
+                           currentHour >= 14 && currentHour <= 16 ? 'medium' : 'low';
 
   const getContextColor = (context: Task['context']) => {
     const colors = {
@@ -76,7 +84,7 @@ export const SmartTaskSuggestions = ({ tasks, onSelectTask }: SmartTaskSuggestio
                     </Badge>
                   )}
                   <Badge variant="outline" className="bg-indigo-50 text-indigo-700">
-                    AI Score: {task.aiScore?.toFixed(1)}
+                    Priority: {task.priority}
                   </Badge>
                 </div>
               </div>

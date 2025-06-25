@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Check, Clock, CheckSquare, Brain, Zap, Target, RefreshCw } from "lucide-react";
-import { BarChart3 } from "lucide-react";
+import { Plus, Check, Clock, CheckSquare, Brain, Zap, Target, RefreshCw, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Task } from "@/types/Task";
-import { AITaskPrioritizer } from "@/utils/aiPrioritization";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { Task } from "@shared/schema";
+import { isUnauthorizedError } from "@/lib/authUtils";
 import { SmartTaskSuggestions } from "./SmartTaskSuggestions";
 
 interface EnhancedTaskManagerProps {
@@ -16,16 +17,118 @@ interface EnhancedTaskManagerProps {
 }
 
 export const EnhancedTaskManager = ({ onTasksUpdate }: EnhancedTaskManagerProps) => {
-  const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState("");
   const [priority, setPriority] = useState<"high" | "medium" | "low">("medium");
   const [estimatedDuration, setEstimatedDuration] = useState<number>(30);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const updateTasks = (newTasks: Task[]) => {
-    setTasks(newTasks);
-    onTasksUpdate?.(newTasks);
-  };
+  // Fetch tasks from API
+  const { data: tasks = [], isLoading } = useQuery({
+    queryKey: ["/api/tasks"],
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+    },
+  });
+
+  // Create task mutation
+  const createTaskMutation = useMutation({
+    mutationFn: async (taskData: any) => {
+      return await apiRequest("/api/tasks", {
+        method: "POST",
+        body: JSON.stringify(taskData),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      setNewTask("");
+      setPriority("medium");
+      setEstimatedDuration(30);
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized", 
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to create task",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update task mutation
+  const updateTaskMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: number; updates: any }) => {
+      return await apiRequest(`/api/tasks/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(updates),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+    },
+  });
+
+  // Delete task mutation
+  const deleteTaskMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return await apiRequest(`/api/tasks/${id}`, {
+        method: "DELETE",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+    },
+  });
+
+  useEffect(() => {
+    onTasksUpdate?.(tasks);
+  }, [tasks, onTasksUpdate]);
 
   // Smart defaults based on task content analysis
   const getSmartDefaults = (taskTitle: string) => {
@@ -94,29 +197,18 @@ export const EnhancedTaskManager = ({ onTasksUpdate }: EnhancedTaskManagerProps)
     // Smart defaults based on task content
     const smartDefaults = getSmartDefaults(newTask.trim());
     
-    const task: Task = {
-      id: Date.now().toString(),
+    const taskData = {
       title: newTask.trim(),
-      priority: priority, // Manual input
+      priority: priority,
       completed: false,
-      createdAt: new Date(),
-      complexity: smartDefaults.complexity, // AI determined
-      impact: smartDefaults.impact, // AI determined
-      context: smartDefaults.context, // AI determined
-      energyLevel: smartDefaults.energyLevel, // AI determined
-      estimatedDuration: estimatedDuration, // Manual input
+      complexity: smartDefaults.complexity,
+      impact: smartDefaults.impact,
+      context: smartDefaults.context,
+      energyLevel: smartDefaults.energyLevel,
+      estimatedDuration: estimatedDuration,
     };
 
-    // Calculate AI priority score
-    task.aiScore = AITaskPrioritizer.calculatePriorityScore(task);
-
-    const newTasks = [task, ...tasks];
-    updateTasks(newTasks);
-    setNewTask("");
-    
-    // Reset manual inputs to defaults
-    setPriority("medium");
-    setEstimatedDuration(30);
+    createTaskMutation.mutate(taskData);
     
     toast({
       title: "Task added",
@@ -124,24 +216,25 @@ export const EnhancedTaskManager = ({ onTasksUpdate }: EnhancedTaskManagerProps)
     });
   };
 
-  const toggleTask = (id: string) => {
-    const newTasks = tasks.map(task => 
-      task.id === id ? { ...task, completed: !task.completed } : task
-    );
-    updateTasks(newTasks);
+  const toggleTask = (id: number) => {
+    const task = tasks.find(t => t.id === id);
+    if (task) {
+      updateTaskMutation.mutate({ 
+        id, 
+        updates: { completed: !task.completed } 
+      });
+    }
   };
 
-  const deleteTask = (id: string) => {
-    const newTasks = tasks.filter(task => task.id !== id);
-    updateTasks(newTasks);
+  const handleDeleteTask = (id: number) => {
+    deleteTaskMutation.mutate(id);
   };
 
   const handleSuggestionSelect = (task: Task) => {
     toast({
-      title: "AI Recommendation Selected",
+      title: "AI Recommendation Selected", 
       description: `Starting "${task.title}" - optimal for current time!`,
     });
-    // You can integrate this with the time tracker here
   };
 
   const getPriorityColor = (priority: string) => {
@@ -167,12 +260,16 @@ export const EnhancedTaskManager = ({ onTasksUpdate }: EnhancedTaskManagerProps)
   const completedTasks = tasks.filter(task => task.completed).length;
   const totalTasks = tasks.length;
 
-  // Sort tasks by AI score for display
+  // Sort tasks by completion status and creation date
   const sortedTasks = [...tasks].sort((a, b) => {
     if (a.completed && !b.completed) return 1;
     if (!a.completed && b.completed) return -1;
-    return (b.aiScore || 0) - (a.aiScore || 0);
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
+
+  if (isLoading) {
+    return <div className="text-center py-8">Loading tasks...</div>;
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -356,11 +453,10 @@ export const EnhancedTaskManager = ({ onTasksUpdate }: EnhancedTaskManagerProps)
           onClick={() => {
             const completedTasks = tasks.filter(t => t.completed);
             if (completedTasks.length > 0) {
-              const updatedTasks = tasks.filter(t => !t.completed);
-              updateTasks(updatedTasks);
+              completedTasks.forEach(task => handleDeleteTask(task.id));
               toast({
                 title: "Cleanup Complete",
-                description: `Removed ${completedTasks.length} completed tasks`,
+                description: `Removing ${completedTasks.length} completed tasks`,
               });
             } else {
               toast({
@@ -452,7 +548,7 @@ export const EnhancedTaskManager = ({ onTasksUpdate }: EnhancedTaskManagerProps)
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => deleteTask(task.id)}
+                    onClick={() => handleDeleteTask(task.id)}
                     className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2"
                   >
                     ×

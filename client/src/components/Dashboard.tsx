@@ -22,7 +22,12 @@ import {
   Minus
 } from "lucide-react";
 
+import { ResponsiveDashboard } from "./ResponsiveDashboard";
+
 export const Dashboard = () => {
+  // For backward compatibility, use the new ResponsiveDashboard
+  return <ResponsiveDashboard />;
+};
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isLive, setIsLive] = useState(true);
   const [activeMetric, setActiveMetric] = useState<string | null>(null);

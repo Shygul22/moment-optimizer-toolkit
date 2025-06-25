@@ -1,39 +1,38 @@
-import { 
-  users, 
-  tasks, 
-  timeSessions, 
+import {
+  users,
+  tasks,
+  timeSessions,
   productivityMetrics,
-  type User, 
-  type InsertUser,
+  type User,
+  type UpsertUser,
   type Task,
   type InsertTask,
   type TimeSession,
   type InsertTimeSession,
   type ProductivityMetric,
-  type InsertProductivityMetric
+  type InsertProductivityMetric,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, gte, lte, sql } from "drizzle-orm";
+import { eq, desc, and, gte, lte, count, sum, avg, sql } from "drizzle-orm";
 
 export interface IStorage {
-  // User methods
-  getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  // User operations (IMPORTANT) these user operations are mandatory for Replit Auth.
+  getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
   
-  // Task methods
-  getTasks(userId: number): Promise<Task[]>;
+  // Task operations
+  getTasks(userId: string): Promise<Task[]>;
   createTask(task: InsertTask): Promise<Task>;
   updateTask(id: number, updates: Partial<InsertTask>): Promise<Task | undefined>;
   deleteTask(id: number): Promise<boolean>;
   
-  // Time session methods
-  getTimeSessions(userId: number, limit?: number): Promise<TimeSession[]>;
+  // Time session operations
+  getTimeSessions(userId: string, limit?: number): Promise<TimeSession[]>;
   createTimeSession(session: InsertTimeSession): Promise<TimeSession>;
   updateTimeSession(id: number, updates: Partial<InsertTimeSession>): Promise<TimeSession | undefined>;
   
-  // Dashboard data methods
-  getDashboardStats(userId: number): Promise<{
+  // Dashboard data operations
+  getDashboardStats(userId: string): Promise<{
     tasksCompleted: number;
     timeTracked: number;
     focusScore: number;
@@ -41,7 +40,7 @@ export interface IStorage {
     currentSessionTime: number;
   }>;
   
-  getWeeklyActivity(userId: number): Promise<{
+  getWeeklyActivity(userId: string): Promise<{
     day: string;
     hours: number;
     tasks: number;
@@ -51,8 +50,8 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  // User methods
-  async getUser(id: number): Promise<User | undefined> {
+  // User operations (IMPORTANT) these user operations are mandatory for Replit Auth.
+  async getUser(id: string): Promise<User | undefined> {
     try {
       const [user] = await db.select().from(users).where(eq(users.id, id));
       return user || undefined;
@@ -62,31 +61,23 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    try {
-      const [user] = await db.select().from(users).where(eq(users.username, username));
-      return user || undefined;
-    } catch (error) {
-      console.error('Error fetching user by username:', error);
-      return undefined;
-    }
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return user;
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    try {
-      const [user] = await db
-        .insert(users)
-        .values(insertUser)
-        .returning();
-      return user;
-    } catch (error) {
-      console.error('Error creating user:', error);
-      throw error;
-    }
-  }
-
-  // Task methods
-  async getTasks(userId: number): Promise<Task[]> {
+  // Task operations
+  async getTasks(userId: string): Promise<Task[]> {
     try {
       return await db.select().from(tasks).where(eq(tasks.userId, userId)).orderBy(desc(tasks.createdAt));
     } catch (error) {
@@ -132,8 +123,8 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // Time session methods
-  async getTimeSessions(userId: number, limit: number = 50): Promise<TimeSession[]> {
+  // Time session operations
+  async getTimeSessions(userId: string, limit: number = 50): Promise<TimeSession[]> {
     try {
       return await db
         .select()
@@ -174,8 +165,8 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // Dashboard data methods
-  async getDashboardStats(userId: number): Promise<{
+  // Dashboard data operations
+  async getDashboardStats(userId: string): Promise<{
     tasksCompleted: number;
     timeTracked: number;
     focusScore: number;
@@ -190,7 +181,7 @@ export class DatabaseStorage implements IStorage {
 
     // Get today's completed tasks
     const [tasksResult] = await db
-      .select({ count: sql<number>`count(*)` })
+      .select({ count: count() })
       .from(tasks)
       .where(
         and(
@@ -204,8 +195,8 @@ export class DatabaseStorage implements IStorage {
     // Get today's total focus time
     const [timeResult] = await db
       .select({ 
-        totalTime: sql<number>`sum(duration)`,
-        avgFocus: sql<number>`avg(focus_quality)`
+        totalTime: sum(timeSessions.duration),
+        avgFocus: avg(timeSessions.focusQuality)
       })
       .from(timeSessions)
       .where(
@@ -288,7 +279,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getWeeklyActivity(userId: number): Promise<{
+  async getWeeklyActivity(userId: string): Promise<{
     day: string;
     hours: number;
     tasks: number;

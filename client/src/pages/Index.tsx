@@ -3,10 +3,10 @@ import { useState } from "react";
 import { EnhancedTaskManager } from "@/components/EnhancedTaskManager";
 import { EnhancedTimeTracker } from "@/components/EnhancedTimeTracker";
 import { SmartScheduler } from "@/components/SmartScheduler";
-import { Dashboard } from "@/components/Dashboard";
+import { ResponsiveDashboard } from "@/components/ResponsiveDashboard";
 import { Navigation } from "@/components/Navigation";
-import { Task } from "@/types/Task";
-import { TimeSession, TimeBlock } from "@/types/TimeTracking";
+import { Task, TimeSession } from "@shared/schema";
+import { TimeBlock } from "@/types/TimeTracking";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("tasks");
@@ -83,7 +83,7 @@ const Index = () => {
                 </h2>
                 <p className="text-sm lg:text-base text-gray-600">Overview of your productivity metrics and trends</p>
               </div>
-              <Dashboard />
+              <ResponsiveDashboard />
             </div>
           )}
         </div>
