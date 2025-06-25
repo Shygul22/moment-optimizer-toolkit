@@ -17,12 +17,7 @@ interface EnhancedTaskManagerProps {
 export const EnhancedTaskManager = ({ onTasksUpdate }: EnhancedTaskManagerProps) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState("");
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [priority, setPriority] = useState<"high" | "medium" | "low">("medium");
-  const [context, setContext] = useState<Task['context']>("work");
-  const [impact, setImpact] = useState<1 | 2 | 3 | 4 | 5>(3);
-  const [complexity, setComplexity] = useState<1 | 2 | 3 | 4 | 5>(3);
-  const [energyLevel, setEnergyLevel] = useState<Task['energyLevel']>("medium");
   const [estimatedDuration, setEstimatedDuration] = useState<number>(30);
   const { toast } = useToast();
 
@@ -101,14 +96,14 @@ export const EnhancedTaskManager = ({ onTasksUpdate }: EnhancedTaskManagerProps)
     const task: Task = {
       id: Date.now().toString(),
       title: newTask.trim(),
-      priority: showAdvanced ? priority : smartDefaults.priority,
+      priority: priority, // Manual input
       completed: false,
       createdAt: new Date(),
-      complexity: showAdvanced ? complexity : smartDefaults.complexity,
-      impact: showAdvanced ? impact : smartDefaults.impact,
-      context: showAdvanced ? context : smartDefaults.context,
-      energyLevel: showAdvanced ? energyLevel : smartDefaults.energyLevel,
-      estimatedDuration: showAdvanced ? estimatedDuration : smartDefaults.estimatedDuration,
+      complexity: smartDefaults.complexity, // AI determined
+      impact: smartDefaults.impact, // AI determined
+      context: smartDefaults.context, // AI determined
+      energyLevel: smartDefaults.energyLevel, // AI determined
+      estimatedDuration: estimatedDuration, // Manual input
     };
 
     // Calculate AI priority score
@@ -118,21 +113,13 @@ export const EnhancedTaskManager = ({ onTasksUpdate }: EnhancedTaskManagerProps)
     updateTasks(newTasks);
     setNewTask("");
     
-    // Reset to defaults only if not using advanced mode
-    if (!showAdvanced) {
-      setPriority("medium");
-      setContext("work");
-      setEnergyLevel("medium");
-      setImpact(3);
-      setComplexity(3);
-      setEstimatedDuration(30);
-    }
+    // Reset manual inputs to defaults
+    setPriority("medium");
+    setEstimatedDuration(30);
     
     toast({
       title: "Task added",
-      description: showAdvanced 
-        ? `Task created with AI score: ${task.aiScore?.toFixed(1)}`
-        : `AI automatically set ${smartDefaults.context} context, ${smartDefaults.priority} priority`,
+      description: `AI set context: ${smartDefaults.context}, complexity: ${smartDefaults.complexity}/5`,
     });
   };
 
@@ -262,64 +249,39 @@ export const EnhancedTaskManager = ({ onTasksUpdate }: EnhancedTaskManagerProps)
               </Button>
             </div>
             
-            {/* Optional: Show advanced options toggle */}
-            <div className="flex items-center justify-between text-sm text-gray-500">
-              <span>AI will automatically set priority, complexity, and context</span>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                className="text-xs"
-              >
-                {showAdvanced ? "Hide" : "Show"} Options
-              </Button>
+            {/* AI information */}
+            <div className="text-sm text-gray-500 text-center">
+              AI will automatically set context and complexity based on your task description
             </div>
             
-            {/* Advanced options - collapsed by default */}
-            {showAdvanced && (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">Priority</label>
-                  <Select value={priority} onValueChange={(value: "high" | "medium" | "low") => setPriority(value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="low">Low</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">Context</label>
-                  <Select value={context} onValueChange={(value: Task['context']) => setContext(value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="work">Work</SelectItem>
-                      <SelectItem value="personal">Personal</SelectItem>
-                      <SelectItem value="creative">Creative</SelectItem>
-                      <SelectItem value="administrative">Administrative</SelectItem>
-                      <SelectItem value="learning">Learning</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">Duration (min)</label>
-                  <Input
-                    type="number"
-                    value={estimatedDuration}
-                    onChange={(e) => setEstimatedDuration(parseInt(e.target.value) || 30)}
-                    min="5"
-                    max="480"
-                  />
-                </div>
+            {/* Simple manual controls - always visible */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Priority</label>
+                <Select value={priority} onValueChange={(value: "high" | "medium" | "low") => setPriority(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="low">Low</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            )}
+              
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Duration (min)</label>
+                <Input
+                  type="number"
+                  value={estimatedDuration}
+                  onChange={(e) => setEstimatedDuration(parseInt(e.target.value) || 30)}
+                  min="5"
+                  max="480"
+                  placeholder="30"
+                />
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
