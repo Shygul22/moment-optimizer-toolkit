@@ -5,6 +5,10 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes
       retry: 1,
+      queryFn: async ({ queryKey }) => {
+        const url = queryKey[0] as string;
+        return apiRequest(url);
+      },
     },
   },
 });
