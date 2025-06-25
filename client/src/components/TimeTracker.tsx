@@ -5,14 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Play, Pause, Square, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-interface TimeSession {
-  id: string;
-  task: string;
-  duration: number;
-  startTime: Date;
-  endTime: Date;
-}
+import { TimeSession } from "@/types/TimeTracking";
 
 export const TimeTracker = () => {
   const [isRunning, setIsRunning] = useState(false);
@@ -60,10 +53,16 @@ export const TimeTracker = () => {
     if (time > 0 && currentTask && startTime) {
       const session: TimeSession = {
         id: Date.now().toString(),
-        task: currentTask,
-        duration: time,
+        taskId: undefined,
         startTime,
         endTime: new Date(),
+        duration: time,
+        sessionType: "focus",
+        energyLevel: 3,
+        focusQuality: 3,
+        interruptions: 0,
+        notes: `Tracked time for: ${currentTask}`,
+        completed: true,
       };
       setSessions([session, ...sessions]);
       toast({
@@ -82,7 +81,7 @@ export const TimeTracker = () => {
       const today = new Date();
       return session.startTime.toDateString() === today.toDateString();
     })
-    .reduce((total, session) => total + session.duration, 0);
+    .reduce((total, session) => total + (session.duration || 0), 0);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -172,14 +171,14 @@ export const TimeTracker = () => {
                   className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
                 >
                   <div>
-                    <p className="font-medium text-gray-800">{session.task}</p>
+                    <p className="font-medium text-gray-800">{session.notes || 'Time tracking session'}</p>
                     <p className="text-sm text-gray-600">
                       {session.startTime.toLocaleDateString()} at {session.startTime.toLocaleTimeString()}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="font-mono font-bold text-indigo-600">
-                      {formatTime(session.duration)}
+                      {formatTime(session.duration || 0)}
                     </p>
                   </div>
                 </div>

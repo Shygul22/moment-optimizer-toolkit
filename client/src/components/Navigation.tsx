@@ -1,7 +1,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { 
   CheckSquare, 
   Timer, 
@@ -58,6 +58,10 @@ export const Navigation = ({ activeTab, setActiveTab }: NavigationProps) => {
                 </Button>
               </DialogTrigger>
               <DialogContent className="w-80 sm:max-w-sm">
+                <DialogTitle>Navigation</DialogTitle>
+                <DialogDescription>
+                  Navigate between different sections of the app
+                </DialogDescription>
                 <div className="flex flex-col h-full">
                   <div className="pb-4 border-b">
                     <h2 className="text-lg font-semibold">Navigation</h2>
