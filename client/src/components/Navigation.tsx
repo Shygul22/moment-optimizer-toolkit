@@ -6,8 +6,6 @@ import {
   CheckSquare, 
   Timer, 
   BarChart3, 
-  Brain, 
-  Target,
   Menu
 } from "lucide-react";
 import { useState } from "react";
@@ -23,11 +21,9 @@ export const Navigation = ({ activeTab, setActiveTab }: NavigationProps) => {
   const isMobile = useIsMobile();
 
   const tabs = [
-    { id: "tasks", label: "Smart Tasks", icon: CheckSquare, color: "text-blue-600", description: "AI-powered task management" },
-    { id: "timer", label: "Time Tracker", icon: Timer, color: "text-green-600", description: "Enhanced time tracking" },
-    { id: "focus", label: "Focus Mode", icon: Brain, color: "text-purple-600", description: "Deep work sessions", badge: "AI" },
-    { id: "dashboard", label: "Dashboard", icon: Target, color: "text-indigo-600", description: "Productivity overview" },
-    { id: "analytics", label: "Analytics", icon: BarChart3, color: "text-orange-600", description: "Behavioral insights" },
+    { id: "tasks", label: "Tasks", icon: CheckSquare, color: "text-blue-600", description: "Task management" },
+    { id: "timer", label: "Timer", icon: Timer, color: "text-green-600", description: "Time tracking" },
+    { id: "dashboard", label: "Dashboard", icon: BarChart3, color: "text-indigo-600", description: "Productivity overview" },
   ];
 
   const handleTabClick = (tabId: string) => {
@@ -43,11 +39,11 @@ export const Navigation = ({ activeTab, setActiveTab }: NavigationProps) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <Brain className="h-5 w-5 text-white" />
+                <CheckSquare className="h-5 w-5 text-white" />
               </div>
               <div>
                 <h1 className="text-lg font-bold text-gray-800">
-                  AI<span className="text-indigo-600">TimeFlow</span>
+                  <span className="text-indigo-600">TimeFlow</span>
                 </h1>
                 <p className="text-xs text-gray-500">
                   {tabs.find(tab => tab.id === activeTab)?.description}
@@ -129,13 +125,13 @@ export const Navigation = ({ activeTab, setActiveTab }: NavigationProps) => {
           {/* Logo */}
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center">
-              <Brain className="h-6 w-6 text-white" />
+              <CheckSquare className="h-6 w-6 text-white" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-800">
-                AI<span className="text-indigo-600">TimeFlow</span>
+                <span className="text-indigo-600">TimeFlow</span>
               </h1>
-              <p className="text-sm text-gray-500">AI-powered productivity platform</p>
+              <p className="text-sm text-gray-500">Minimalist productivity platform</p>
             </div>
           </div>
 
