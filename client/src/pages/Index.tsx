@@ -4,20 +4,15 @@ import { EnhancedTaskManager } from "@/components/EnhancedTaskManager";
 import { EnhancedTimeTracker } from "@/components/EnhancedTimeTracker";
 import { SmartScheduler } from "@/components/SmartScheduler";
 import { Dashboard } from "@/components/Dashboard";
-import { FocusModeHub } from "@/components/FocusMode/FocusModeHub";
-import { ProductivityDashboard } from "@/components/Analytics/ProductivityDashboard";
 import { Navigation } from "@/components/Navigation";
 import { Task } from "@/types/Task";
 import { TimeSession, TimeBlock } from "@/types/TimeTracking";
-import { FocusSession } from "@/types/FocusMode";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("tasks");
   const [tasks, setTasks] = useState<Task[]>([]);
   const [sessions, setSessions] = useState<TimeSession[]>([]);
-  const [focusSessions, setFocusSessions] = useState<FocusSession[]>([]);
   const [activeTimeBlock, setActiveTimeBlock] = useState<TimeBlock | null>(null);
-  const [analyticsTimeRange, setAnalyticsTimeRange] = useState<"week" | "month" | "quarter">("week");
 
   const handleTasksUpdate = (updatedTasks: Task[]) => {
     setTasks(updatedTasks);
@@ -27,9 +22,7 @@ const Index = () => {
     setSessions(prev => [...prev, session]);
   };
 
-  const handleFocusSessionComplete = (session: FocusSession) => {
-    setFocusSessions(prev => [...prev, session]);
-  };
+
 
   const handleStartTimeBlock = (block: TimeBlock) => {
     setActiveTimeBlock(block);
@@ -46,9 +39,9 @@ const Index = () => {
             <div className="space-y-4 lg:space-y-6">
               <div className="text-center lg:text-left mb-4 lg:mb-6">
                 <h2 className="text-xl lg:text-3xl font-bold text-gray-800 mb-2">
-                  Smart Task Management
+                  Task Management
                 </h2>
-                <p className="text-sm lg:text-base text-gray-600">AI-powered prioritization and intelligent suggestions</p>
+                <p className="text-sm lg:text-base text-gray-600">Organize and prioritize your tasks effectively</p>
               </div>
               <EnhancedTaskManager 
                 onTasksUpdate={handleTasksUpdate}
@@ -62,7 +55,7 @@ const Index = () => {
                 <h2 className="text-xl lg:text-3xl font-bold text-gray-800 mb-2">
                   Time Tracking & Scheduling
                 </h2>
-                <p className="text-sm lg:text-base text-gray-600">Enhanced time tracking with smart scheduling</p>
+                <p className="text-sm lg:text-base text-gray-600">Track your time and schedule your work effectively</p>
               </div>
               
               <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-8">
@@ -82,21 +75,6 @@ const Index = () => {
             </div>
           )}
           
-          {activeTab === "focus" && (
-            <div className="space-y-4 lg:space-y-6">
-              <div className="text-center lg:text-left mb-4 lg:mb-6">
-                <h2 className="text-xl lg:text-3xl font-bold text-gray-800 mb-2">
-                  AI Focus Mode
-                </h2>
-                <p className="text-sm lg:text-base text-gray-600">Deep work sessions with intelligent distraction management</p>
-              </div>
-              <FocusModeHub 
-                tasks={tasks}
-                onSessionComplete={handleFocusSessionComplete}
-              />
-            </div>
-          )}
-          
           {activeTab === "dashboard" && (
             <div className="space-y-4 lg:space-y-6">
               <div className="text-center lg:text-left mb-4 lg:mb-6">
@@ -106,21 +84,6 @@ const Index = () => {
                 <p className="text-sm lg:text-base text-gray-600">Overview of your productivity metrics and trends</p>
               </div>
               <Dashboard />
-            </div>
-          )}
-          
-          {activeTab === "analytics" && (
-            <div className="space-y-4 lg:space-y-6">
-              <div className="text-center lg:text-left mb-4 lg:mb-6">
-                <h2 className="text-xl lg:text-3xl font-bold text-gray-800 mb-2">
-                  Advanced Analytics
-                </h2>
-                <p className="text-sm lg:text-base text-gray-600">AI-powered behavioral insights and performance analysis</p>
-              </div>
-              <ProductivityDashboard 
-                timeRange={analyticsTimeRange}
-                onTimeRangeChange={setAnalyticsTimeRange}
-              />
             </div>
           )}
         </div>

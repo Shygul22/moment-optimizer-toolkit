@@ -1,8 +1,8 @@
-# AI TimeFlow - Advanced Productivity & Focus Management Platform
+# TimeFlow - Minimalist Productivity Platform
 
 ## Overview
 
-AI TimeFlow is a comprehensive productivity platform that combines intelligent task management, AI-powered focus modes, and advanced analytics. Built with React, TypeScript, and Express.js, it features intelligent focus sessions, adaptive Pomodoro timers, distraction management, behavioral pattern analysis, and real-time productivity insights to help users achieve peak performance and deep work states.
+TimeFlow is a minimalist productivity platform focused on essential task management and time tracking. Built with React, TypeScript, and Express.js, it provides a clean, distraction-free interface for organizing tasks, tracking time, and viewing productivity metrics without complex AI features.
 
 ## Recent Changes
 
@@ -14,17 +14,11 @@ AI TimeFlow is a comprehensive productivity platform that combines intelligent t
 - **Security Practices**: Client/server separation maintained with robust architecture
 - **Database Integration**: Configured for Supabase PostgreSQL with secure connection handling
 
-### AI-Powered Focus Mode Implementation (January 2025)
-- **Intelligent Focus Sessions**: Dynamic session length optimization based on task complexity, energy levels, and historical performance
-- **Adaptive Pomodoro Timer**: AI-adjusted work/break intervals with progressive difficulty and energy-based modifications  
-- **Distraction Management**: Real-time distraction detection, intelligent blocking, and intervention strategies
-- **Focus Quality Tracking**: Continuous monitoring of attention depth and environmental factors
-
-### Advanced Analytics & Behavioral Intelligence (January 2025)
-- **Real-time Performance Dashboard**: Live focus quality monitoring, energy tracking, and session progress
-- **AI Insights Engine**: Pattern detection, personalized recommendations, and predictive productivity forecasting
-- **Behavioral Analysis**: Work pattern recognition, context switching analysis, and procrastination detection
-- **Goal Progress Intelligence**: Automated milestone tracking with predictive completion dates
+### Minimalist Design Implementation (January 2025)
+- **Simplified Interface**: Removed complex AI features and focus modes for clean, distraction-free experience
+- **Core Task Management**: Essential task creation, editing, and completion tracking
+- **Basic Time Tracking**: Simple time tracking with session management
+- **Clean Dashboard**: Overview of productivity metrics without overwhelming analytics
 
 ## System Architecture
 
@@ -52,29 +46,20 @@ AI TimeFlow is a comprehensive productivity platform that combines intelligent t
 
 ## Key Components
 
-### AI-Powered Task Management
-- **Task Prioritization**: AI scoring system based on priority, impact, urgency, complexity, and optimal timing
-- **Smart Suggestions**: Context-aware task recommendations based on time of day and energy levels
-- **Task Attributes**: Complex task modeling including estimated duration, energy requirements, and dependencies
+### Core Task Management
+- **Task Creation**: Simple task creation with title, priority, and due date
+- **Task Organization**: Basic categorization and priority-based sorting
+- **Task Completion**: Straightforward task completion tracking
 
-### AI-Powered Focus Mode
-- **Intelligent Focus Sessions**: Smart session duration calculation based on task complexity, user energy, and historical performance
-- **Distraction Management**: Real-time distraction detection with intelligent interventions and focus score tracking
-- **Adaptive Pomodoro**: AI-enhanced Pomodoro technique with energy-based adjustments and progressive difficulty scaling
-- **Focus Techniques**: Personalized recommendations for breathing, meditation, music, and environmental optimization
-- **Environmental Optimization**: Context-aware suggestions for lighting, noise, temperature, and location adjustments
+### Time Tracking
+- **Session Management**: Start/stop time tracking for tasks and activities
+- **Time Logging**: Basic time duration tracking and session history
+- **Simple Scheduling**: Manual time blocking and scheduling tools
 
-### Time Tracking & Analytics
-- **Session Management**: Detailed time tracking with focus quality metrics and interruption counting
-- **Time Blocking**: AI-generated optimal schedules based on task characteristics and user productivity patterns
-- **Productivity Metrics**: Comprehensive analytics including energy patterns, peak hours, and goal achievement
-
-### Advanced Analytics & Behavioral Insights
-- **Productivity Intelligence**: Comprehensive dashboard with trend analysis, peak performance identification, and productivity forecasting
-- **Behavioral Pattern Recognition**: AI detection of work patterns, energy cycles, procrastination triggers, and peak performance windows
-- **Context Switching Analysis**: Tracking and optimization recommendations for focus block duration and switching efficiency
-- **Predictive Analytics**: AI-powered forecasting for productivity trends, goal achievement, and habit formation success
-- **Work-Life Balance Monitoring**: Burnout risk assessment, wellness scoring, and boundary optimization recommendations
+### Basic Analytics
+- **Productivity Dashboard**: Simple overview of completed tasks and time tracked
+- **Basic Metrics**: Task completion rates and time distribution
+- **Weekly Activity**: Visual representation of daily productivity
 
 ### User Interface
 - **Component Library**: shadcn/ui with Radix UI primitives for accessibility
