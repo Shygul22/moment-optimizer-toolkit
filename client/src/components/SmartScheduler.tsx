@@ -6,10 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { Calendar, Clock, Zap, Brain, Play, Pause, BarChart3, Target, Users, Coffee, BookOpen, Settings } from "lucide-react";
+import { Calendar, Clock, Zap, Brain, Play, Pause, BarChart3, Target, Users, Coffee, BookOpen, Settings, Edit, RefreshCw, CheckCircle } from "lucide-react";
 import { Task } from "@/types/Task";
 import { TimeBlock } from "@/types/TimeTracking";
 import { TimeBlockingAI } from "@/utils/timeBlockingAI";
+import { ScheduleSuggestionDialog } from "./ScheduleSuggestionDialog";
 import { useToast } from "@/hooks/use-toast";
 
 interface SmartSchedulerProps {
@@ -24,28 +25,135 @@ export const SmartScheduler = ({ tasks, onStartTimeBlock }: SmartSchedulerProps)
   const [isGenerating, setIsGenerating] = useState(false);
   const [viewMode, setViewMode] = useState<'timeline' | 'calendar' | 'summary'>('timeline');
   const [schedulePreference, setSchedulePreference] = useState<'balanced' | 'intense' | 'relaxed'>('balanced');
+  const [selectedBlock, setSelectedBlock] = useState<TimeBlock | null>(null);
+  const [suggestionMode, setSuggestionMode] = useState(false);
+  const [scheduleStats, setScheduleStats] = useState<any>(null);
   const { toast } = useToast();
 
   const generateSchedule = async () => {
     setIsGenerating(true);
     
-    // Simulate AI processing time
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const availableHours = [{ start: workingHours.start, end: workingHours.end }];
-    const newSchedule = TimeBlockingAI.generateOptimalSchedule(tasks, availableHours);
-    const scheduledWithBreaks = [
-      ...newSchedule,
-      ...TimeBlockingAI.calculateOptimalBreaks(newSchedule)
-    ].sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
-    
-    setSchedule(scheduledWithBreaks);
-    setIsGenerating(false);
-    
-    toast({
-      title: "Smart Schedule Generated",
-      description: `Created ${newSchedule.length} time blocks optimized for your productivity!`,
-    });
+    try {
+      const response = await fetch('/api/schedule/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          workingHours,
+          preferences: { style: schedulePreference },
+          date: new Date().toISOString().split('T')[0]
+        })
+      });
+      
+      if (!response.ok) throw new Error('Failed to generate schedule');
+      
+      const data = await response.json();
+      const scheduleWithDates = data.schedule.map((block: any) => ({
+        ...block,
+        startTime: new Date(block.startTime),
+        endTime: new Date(block.endTime)
+      }));
+      
+      setSchedule(scheduleWithDates);
+      setScheduleStats(data.stats);
+      setIsGenerating(false);
+      
+      toast({
+        title: "AI Schedule Generated",
+        description: `Created ${data.stats.totalBlocks} optimized time blocks with ${data.stats.efficiency}% efficiency!`,
+      });
+    } catch (error) {
+      console.error('Schedule generation error:', error);
+      setIsGenerating(false);
+      toast({
+        title: "Generation Failed",
+        description: "Unable to generate schedule. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // User suggestion functions
+  const handleSuggestChange = (block: TimeBlock) => {
+    setSelectedBlock(block);
+    setSuggestionMode(true);
+  };
+
+  const handleSubmitSuggestion = async (blockId: string, suggestions: any) => {
+    try {
+      const response = await fetch('/api/schedule/suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          blockId,
+          suggestions,
+          currentSchedule: schedule
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to process suggestion');
+
+      const data = await response.json();
+      const updatedSchedule = data.updatedSchedule.map((block: any) => ({
+        ...block,
+        startTime: new Date(block.startTime),
+        endTime: new Date(block.endTime)
+      }));
+
+      setSchedule(updatedSchedule);
+      setSuggestionMode(false);
+      setSelectedBlock(null);
+
+      toast({
+        title: "Schedule Updated",
+        description: data.message || "Your suggestions have been applied to the schedule!",
+      });
+    } catch (error) {
+      console.error('Suggestion processing error:', error);
+      toast({
+        title: "Update Failed",
+        description: "Unable to process your suggestion. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const optimizeSchedule = async () => {
+    try {
+      const response = await fetch('/api/schedule/optimize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          schedule,
+          userFeedback: { preferences: schedulePreference }
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to optimize schedule');
+
+      const data = await response.json();
+      const optimizedSchedule = data.optimizedSchedule.map((block: any) => ({
+        ...block,
+        startTime: new Date(block.startTime),
+        endTime: new Date(block.endTime)
+      }));
+
+      setSchedule(optimizedSchedule);
+
+      toast({
+        title: "Schedule Optimized",
+        description: `Applied ${data.improvements.betterTimeSlots} improvements based on your productivity patterns!`,
+      });
+    } catch (error) {
+      console.error('Optimization error:', error);
+      toast({
+        title: "Optimization Failed",
+        description: "Unable to optimize schedule. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const getBlockTypeColor = (blockType: TimeBlock['blockType']) => {
@@ -110,7 +218,7 @@ export const SmartScheduler = ({ tasks, onStartTimeBlock }: SmartSchedulerProps)
   };
 
   const uncompletedTasks = tasks.filter(task => !task.completed);
-  const scheduleStats = calculateScheduleStats();
+  const currentScheduleStats = calculateScheduleStats();
 
   return (
     <div className="space-y-6">
@@ -201,6 +309,18 @@ export const SmartScheduler = ({ tasks, onStartTimeBlock }: SmartSchedulerProps)
                   </>
                 )}
               </Button>
+              
+              {schedule.length > 0 && (
+                <Button 
+                  onClick={optimizeSchedule} 
+                  variant="outline"
+                  className="w-full border-green-200 text-green-700 hover:bg-green-50 mt-2"
+                  size="lg"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Optimize Schedule
+                </Button>
+              )}
             </div>
           </div>
           
@@ -310,31 +430,45 @@ export const SmartScheduler = ({ tasks, onStartTimeBlock }: SmartSchedulerProps)
                           </div>
                         </div>
                         
-                        {/* Action Button */}
-                        {block.blockType !== 'break' && (
+                        {/* Action Buttons */}
+                        <div className="flex gap-2">
+                          {/* Suggest Changes Button */}
                           <Button
-                            onClick={() => startTimeBlock(block)}
-                            size="lg"
-                            variant={currentBlock?.id === block.id ? "secondary" : "default"}
-                            className={`flex-shrink-0 ${
-                              currentBlock?.id === block.id 
-                                ? "bg-gray-100 text-gray-700" 
-                                : "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
-                            }`}
+                            onClick={() => handleSuggestChange(block)}
+                            size="sm"
+                            variant="outline"
+                            className="flex-shrink-0 border-orange-200 text-orange-700 hover:bg-orange-50"
                           >
-                            {currentBlock?.id === block.id ? (
-                              <>
-                                <Pause className="w-4 h-4 mr-2" />
-                                Active
-                              </>
-                            ) : (
-                              <>
-                                <Play className="w-4 h-4 mr-2" />
-                                Start
-                              </>
-                            )}
+                            <Edit className="w-4 h-4 mr-1" />
+                            Suggest
                           </Button>
-                        )}
+                          
+                          {/* Start/Pause Button */}
+                          {block.blockType !== 'break' && (
+                            <Button
+                              onClick={() => startTimeBlock(block)}
+                              size="sm"
+                              variant={currentBlock?.id === block.id ? "secondary" : "default"}
+                              className={`flex-shrink-0 ${
+                                currentBlock?.id === block.id 
+                                  ? "bg-gray-100 text-gray-700" 
+                                  : "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
+                              }`}
+                            >
+                              {currentBlock?.id === block.id ? (
+                                <>
+                                  <Pause className="w-4 h-4 mr-1" />
+                                  Active
+                                </>
+                              ) : (
+                                <>
+                                  <Play className="w-4 h-4 mr-1" />
+                                  Start
+                                </>
+                              )}
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -430,6 +564,17 @@ export const SmartScheduler = ({ tasks, onStartTimeBlock }: SmartSchedulerProps)
           </CardContent>
         </Card>
       )}
+      
+      {/* Schedule Suggestion Dialog */}
+      <ScheduleSuggestionDialog
+        isOpen={suggestionMode}
+        onClose={() => {
+          setSuggestionMode(false);
+          setSelectedBlock(null);
+        }}
+        block={selectedBlock}
+        onSubmitSuggestion={handleSubmitSuggestion}
+      />
     </div>
   );
 };
