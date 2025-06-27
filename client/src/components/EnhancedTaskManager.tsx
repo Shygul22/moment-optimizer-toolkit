@@ -24,7 +24,7 @@ export const EnhancedTaskManager = ({ onTasksUpdate }: EnhancedTaskManagerProps)
   const queryClient = useQueryClient();
 
   // Fetch tasks from API
-  const { data: tasks = [], isLoading } = useQuery({
+  const { data: tasks = [], isLoading } = useQuery<Task[]>({
     queryKey: ["/api/tasks"],
   });
 
@@ -114,8 +114,10 @@ export const EnhancedTaskManager = ({ onTasksUpdate }: EnhancedTaskManagerProps)
   });
 
   useEffect(() => {
-    onTasksUpdate?.(tasks);
-  }, [tasks, onTasksUpdate]);
+    if (onTasksUpdate) {
+      onTasksUpdate(tasks);
+    }
+  }, [tasks]); // Remove onTasksUpdate from dependencies to prevent infinite re-renders
 
   // Smart defaults based on task content analysis
   const getSmartDefaults = (taskTitle: string) => {

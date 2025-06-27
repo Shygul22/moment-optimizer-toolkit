@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Play, Pause, Square, Timer, Zap, Brain, Target } from "lucide-react";
-import { TimeSession, TimeBlock } from "@/types/TimeTracking";
+import { TimeSession } from "@shared/schema";
+import { TimeBlock } from "@/types/TimeTracking";
 import { useToast } from "@/hooks/use-toast";
 
 interface EnhancedTimeTrackerProps {
@@ -17,10 +18,10 @@ interface EnhancedTimeTrackerProps {
 export const EnhancedTimeTracker = ({ activeTimeBlock, onSessionComplete }: EnhancedTimeTrackerProps) => {
   const [isRunning, setIsRunning] = useState(false);
   const [timeElapsed, setTimeElapsed] = useState(0);
-  const [currentSession, setCurrentSession] = useState<TimeSession | null>(null);
-  const [sessionType, setSessionType] = useState<TimeSession['sessionType']>('focus');
-  const [energyLevel, setEnergyLevel] = useState<TimeSession['energyLevel']>(3);
-  const [focusQuality, setFocusQuality] = useState<TimeSession['focusQuality']>(3);
+  const [currentSession, setCurrentSession] = useState<any>(null);
+  const [sessionType, setSessionType] = useState<string>('focus');
+  const [energyLevel, setEnergyLevel] = useState<number>(3);
+  const [focusQuality, setFocusQuality] = useState<number>(3);
   const [interruptions, setInterruptions] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout>();
   const { toast } = useToast();
@@ -44,9 +45,9 @@ export const EnhancedTimeTracker = ({ activeTimeBlock, onSessionComplete }: Enha
   }, [isRunning]);
 
   const startSession = () => {
-    const session: TimeSession = {
-      id: `session-${Date.now()}`,
-      taskId: activeTimeBlock?.taskIds[0],
+    const session = {
+      id: Date.now().toString(),
+      taskId: activeTimeBlock?.taskIds[0] || null,
       startTime: new Date(),
       sessionType,
       energyLevel,
@@ -187,7 +188,7 @@ export const EnhancedTimeTracker = ({ activeTimeBlock, onSessionComplete }: Enha
                   
                   <div>
                     <label className="text-sm font-medium text-gray-700 mb-1 block">Energy Level</label>
-                    <Select value={energyLevel.toString()} onValueChange={(value) => setEnergyLevel(parseInt(value) as TimeSession['energyLevel'])}>
+                    <Select value={energyLevel.toString()} onValueChange={(value) => setEnergyLevel(parseInt(value))}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
