@@ -392,8 +392,18 @@ function analyzeProductivityPatterns(sessions: any[]) {
   return hourlyProductivity;
 }
 
-function analyzeScheduleChanges(oldSchedule: any[], newSchedule: any[]) {
-  const changes = [];
+function analyzeScheduleChanges(oldSchedule: any[], newSchedule: any[]): Array<{
+  type: 'added' | 'rescheduled' | 'duration_changed';
+  block: any;
+  oldTime?: any;
+  oldDuration?: any;
+}> {
+  const changes: Array<{
+    type: 'added' | 'rescheduled' | 'duration_changed';
+    block: any;
+    oldTime?: any;
+    oldDuration?: any;
+  }> = [];
   
   newSchedule.forEach(newBlock => {
     const oldBlock = oldSchedule.find(b => b.id === newBlock.id);

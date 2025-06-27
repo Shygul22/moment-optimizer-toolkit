@@ -46,8 +46,7 @@ export const EnhancedTimeTracker = ({ activeTimeBlock, onSessionComplete }: Enha
 
   const startSession = () => {
     const session = {
-      id: Date.now().toString(),
-      taskId: activeTimeBlock?.taskIds[0] || null,
+      taskId: activeTimeBlock?.taskIds[0] ? parseInt(activeTimeBlock.taskIds[0]) : null,
       startTime: new Date(),
       sessionType,
       energyLevel,
@@ -259,7 +258,7 @@ export const EnhancedTimeTracker = ({ activeTimeBlock, onSessionComplete }: Enha
                     <label className="text-sm font-medium text-gray-700 mb-2 block">
                       How was your focus quality?
                     </label>
-                    <Select value={focusQuality.toString()} onValueChange={(value) => setFocusQuality(parseInt(value) as TimeSession['focusQuality'])}>
+                    <Select value={focusQuality.toString()} onValueChange={(value) => setFocusQuality(parseInt(value) || 3)}>
                       <SelectTrigger className="w-full">
                         <SelectValue />
                       </SelectTrigger>

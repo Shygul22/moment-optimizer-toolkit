@@ -1,17 +1,5 @@
 
-export interface TimeSession {
-  id: string;
-  taskId?: string;
-  startTime: Date;
-  endTime?: Date;
-  duration?: number; // in minutes
-  sessionType: "focus" | "break" | "planning" | "review";
-  energyLevel: 1 | 2 | 3 | 4 | 5; // 1 = very low, 5 = very high
-  focusQuality: 1 | 2 | 3 | 4 | 5; // 1 = very distracted, 5 = deep focus
-  interruptions: number;
-  notes?: string;
-  completed: boolean;
-}
+// Note: TimeSession is now imported from @shared/schema to ensure consistency
 
 export interface TimeBlock {
   id: string;

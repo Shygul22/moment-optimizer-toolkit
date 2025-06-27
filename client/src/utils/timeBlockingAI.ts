@@ -1,6 +1,6 @@
 
-import { Task } from "@/types/Task";
-import { TimeBlock, TimeSession, ProductivityMetrics } from "@/types/TimeTracking";
+import { Task } from "@shared/schema";
+import { TimeBlock, ProductivityMetrics } from "@/types/TimeTracking";
 
 export class TimeBlockingAI {
   static generateOptimalSchedule(
@@ -90,9 +90,9 @@ export class TimeBlockingAI {
       .filter(task => !task.completed)
       .sort((a, b) => {
         // Prioritize by AI score first
-        if (a.aiScore && b.aiScore) {
-          if (a.aiScore !== b.aiScore) return b.aiScore - a.aiScore;
-        }
+        const aScore = a.aiScore ? parseFloat(a.aiScore.toString()) : 0;
+        const bScore = b.aiScore ? parseFloat(b.aiScore.toString()) : 0;
+        if (aScore !== bScore) return bScore - aScore;
         
         // Then by due date
         if (a.dueDate && b.dueDate) {
@@ -100,7 +100,7 @@ export class TimeBlockingAI {
         }
         
         // Finally by impact
-        return b.impact - a.impact;
+        return (b.impact || 0) - (a.impact || 0);
       });
   }
   
@@ -181,9 +181,9 @@ export class TimeBlockingAI {
       title: task.title,
       startTime: timeSlot.start,
       endTime: timeSlot.end,
-      taskIds: [task.id],
+      taskIds: [task.id.toString()],
       blockType,
-      energyRequired: task.energyLevel,
+      energyRequired: (task.energyLevel || "medium") as "low" | "medium" | "high",
       flexibility: 'flexible',
       aiGenerated: true
     };
