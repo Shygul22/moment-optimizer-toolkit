@@ -6,6 +6,7 @@ import {
   CheckSquare, 
   Timer, 
   BarChart3, 
+  Target,
   Menu
 } from "lucide-react";
 import { useState } from "react";
@@ -23,6 +24,7 @@ export const Navigation = ({ activeTab, setActiveTab }: NavigationProps) => {
   const tabs = [
     { id: "tasks", label: "Tasks", icon: CheckSquare, color: "text-blue-600", description: "Task management" },
     { id: "timer", label: "Timer", icon: Timer, color: "text-green-600", description: "Time tracking" },
+    { id: "prioritize", label: "Prioritize", icon: Target, color: "text-purple-600", description: "AI task prioritization" },
     { id: "dashboard", label: "Dashboard", icon: BarChart3, color: "text-indigo-600", description: "Productivity overview" },
   ];
 

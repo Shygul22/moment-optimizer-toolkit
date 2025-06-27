@@ -4,6 +4,7 @@ import { EnhancedTaskManager } from "@/components/EnhancedTaskManager";
 import { EnhancedTimeTracker } from "@/components/EnhancedTimeTracker";
 import { SmartScheduler } from "@/components/SmartScheduler";
 import { ResponsiveDashboard } from "@/components/ResponsiveDashboard";
+import { SimpleNotifications } from "@/components/SimpleNotifications";
 import { Navigation } from "@/components/Navigation";
 import { Task, TimeSession } from "@shared/schema";
 import { TimeBlock } from "@/types/TimeTracking";
@@ -31,7 +32,12 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
+      <div className="flex items-center justify-between p-4 border-b bg-white/80 backdrop-blur-sm">
+        <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
+        <SimpleNotifications 
+          tasks={tasks}
+        />
+      </div>
       
       <main className="container mx-auto px-4 py-4 lg:py-8">
         <div className="max-w-7xl mx-auto">
@@ -71,6 +77,26 @@ const Index = () => {
                     onStartTimeBlock={handleStartTimeBlock}
                   />
                 </div>
+              </div>
+            </div>
+          )}
+          
+          {activeTab === "prioritize" && (
+            <div className="space-y-4 lg:space-y-6">
+              <div className="text-center lg:text-left mb-4 lg:mb-6">
+                <h2 className="text-xl lg:text-3xl font-bold text-gray-800 mb-2">
+                  Smart Task Prioritization
+                </h2>
+                <p className="text-sm lg:text-base text-gray-600">AI-powered prioritization using proven methodologies</p>
+              </div>
+              <div className="bg-white rounded-lg p-6 shadow-sm">
+                <p className="text-gray-600">Task prioritization features will be available soon! This will include:</p>
+                <ul className="mt-4 space-y-2 text-sm text-gray-600">
+                  <li>• Eisenhower Matrix categorization</li>
+                  <li>• Eat the Frog methodology</li>
+                  <li>• 80/20 Rule analysis</li>
+                  <li>• Smart priority recommendations</li>
+                </ul>
               </div>
             </div>
           )}
