@@ -170,9 +170,9 @@ export const TaskPrioritization = ({
         const prioritizedTask: PrioritizedTask = {
           ...task,
           priorityScore: selectedMethod === 'ai-composite' ? aiScore : 
-                        selectedMethod === 'eisenhower' ? (eisenhowerQuadrant === 'urgent-important' ? 1 : eisenhowerQuadrant === 'important-not-urgent' ? 0.8 : 0.5) :
-                        selectedMethod === 'eat-the-frog' ? (5 - eatTheFrogScore) / 5 :
-                        paretoScore / 10,
+                        selectedMethod === 'eisenhower' ? (eisenhowerQuadrant === 'urgent-important' ? 1 : eisenhowerQuadrant === 'important-not-urgent' ? 0.8 : eisenhowerQuadrant === 'urgent-not-important' ? 0.6 : 0.3) :
+                        selectedMethod === 'eat-the-frog' ? Math.max(0, (5 - eatTheFrogScore) / 5) :
+                        Math.min(1, paretoScore / 10),
           eisenhowerQuadrant,
           eatTheFrogScore,
           paretoScore,
@@ -198,7 +198,13 @@ export const TaskPrioritization = ({
 
   useEffect(() => {
     if (tasks.length > 0) {
-      analyzeTasks();
+      const timeoutId = setTimeout(() => {
+        analyzeTasks();
+      }, 300); // Debounce to prevent excessive re-analysis
+      
+      return () => clearTimeout(timeoutId);
+    } else {
+      setPrioritizedTasks([]);
     }
   }, [tasks, selectedMethod]);
 
