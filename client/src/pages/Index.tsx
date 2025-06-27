@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { EnhancedTaskManager } from "@/components/EnhancedTaskManager";
 import { EnhancedTimeTracker } from "@/components/EnhancedTimeTracker";
@@ -6,6 +5,7 @@ import { SmartScheduler } from "@/components/SmartScheduler";
 import { ResponsiveDashboard } from "@/components/ResponsiveDashboard";
 import { SimpleNotifications } from "@/components/SimpleNotifications";
 import { Navigation } from "@/components/Navigation";
+import { TaskPrioritization } from "@/components/TaskPrioritization";
 import { Task, TimeSession } from "@shared/schema";
 import { TimeBlock } from "@/types/TimeTracking";
 
@@ -22,8 +22,6 @@ const Index = () => {
   const handleSessionComplete = (session: TimeSession) => {
     setSessions(prev => [...prev, session]);
   };
-
-
 
   const handleStartTimeBlock = (block: TimeBlock) => {
     setActiveTimeBlock(block);
@@ -73,7 +71,7 @@ const Index = () => {
                 </div>
                 <div className="lg:col-span-2">
                   <SmartScheduler 
-                    tasks={tasks}
+                    tasks={tasks as any[]}
                     onStartTimeBlock={handleStartTimeBlock}
                   />
                 </div>
@@ -89,15 +87,15 @@ const Index = () => {
                 </h2>
                 <p className="text-sm lg:text-base text-gray-600">AI-powered prioritization using proven methodologies</p>
               </div>
-              <div className="bg-white rounded-lg p-6 shadow-sm">
-                <p className="text-gray-600">Task prioritization features will be available soon! This will include:</p>
-                <ul className="mt-4 space-y-2 text-sm text-gray-600">
-                  <li>• Eisenhower Matrix categorization</li>
-                  <li>• Eat the Frog methodology</li>
-                  <li>• 80/20 Rule analysis</li>
-                  <li>• Smart priority recommendations</li>
-                </ul>
-              </div>
+              <TaskPrioritization 
+                tasks={tasks as any[]}
+                onTaskPriorityUpdate={(taskId: number, newPriority: string) => {
+                  // Handle priority updates here
+                }}
+                onTaskReorder={(reorderedTasks: any[]) => {
+                  setTasks(reorderedTasks as Task[]);
+                }}
+              />
             </div>
           )}
           

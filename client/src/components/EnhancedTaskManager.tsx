@@ -114,7 +114,7 @@ export const EnhancedTaskManager = ({ onTasksUpdate }: EnhancedTaskManagerProps)
   });
 
   useEffect(() => {
-    if (onTasksUpdate) {
+    if (onTasksUpdate && tasks.length > 0) {
       onTasksUpdate(tasks);
     }
   }, [tasks]); // Remove onTasksUpdate from dependencies to prevent infinite re-renders
@@ -243,7 +243,7 @@ export const EnhancedTaskManager = ({ onTasksUpdate }: EnhancedTaskManagerProps)
       administrative: "bg-gray-100 text-gray-700",
       learning: "bg-orange-100 text-orange-700"
     };
-    return colors[context];
+    return colors[context as keyof typeof colors] || colors.work;
   };
 
   const completedTasks = tasks.filter(task => task.completed).length;
@@ -253,7 +253,7 @@ export const EnhancedTaskManager = ({ onTasksUpdate }: EnhancedTaskManagerProps)
   const sortedTasks = [...tasks].sort((a, b) => {
     if (a.completed && !b.completed) return 1;
     if (!a.completed && b.completed) return -1;
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    return new Date(b.createdAt || new Date()).getTime() - new Date(a.createdAt || new Date()).getTime();
   });
 
   if (isLoading) {
@@ -301,7 +301,7 @@ export const EnhancedTaskManager = ({ onTasksUpdate }: EnhancedTaskManagerProps)
               <div>
                 <p className="text-sm text-gray-600">AI Optimized</p>
                 <p className="text-2xl font-bold text-indigo-600">
-                  {tasks.filter(t => t.aiScore && t.aiScore > 7).length}
+                  {tasks.filter(t => t.aiScore && parseFloat(t.aiScore.toString()) > 0.7).length}
                 </p>
               </div>
               <div className="p-3 bg-indigo-100 rounded-full">
@@ -402,7 +402,7 @@ export const EnhancedTaskManager = ({ onTasksUpdate }: EnhancedTaskManagerProps)
           onClick={() => {
             const completedToday = tasks.filter(t => 
               t.completed && 
-              new Date(t.createdAt).toDateString() === new Date().toDateString()
+              new Date(t.createdAt || new Date()).toDateString() === new Date().toDateString()
             ).length;
             toast({
               title: "Today's Progress",
@@ -519,12 +519,12 @@ export const EnhancedTaskManager = ({ onTasksUpdate }: EnhancedTaskManagerProps)
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge className={getContextColor(task.context)} size="sm">
+                      <Badge className={`${getContextColor(task.context)} text-xs`}>
                         {task.context}
                       </Badge>
                       {task.aiScore && (
                         <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 text-xs">
-                          AI: {task.aiScore.toFixed(1)}
+                          AI: {parseFloat(task.aiScore.toString()).toFixed(1)}
                         </Badge>
                       )}
                     </div>

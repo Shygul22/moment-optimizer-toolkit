@@ -1,32 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
-  Brain, 
   Target, 
+  Brain, 
+  Zap, 
+  Clock, 
   TrendingUp, 
-  Grid3X3, 
-  Fish, 
+  AlertTriangle, 
+  CheckCircle,
   BarChart3,
-  RefreshCw,
-  Eye,
+  Lightbulb,
   ArrowUp,
   ArrowDown,
-  CheckCircle2
-} from 'lucide-react';
-import { Button } from './ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Badge } from './ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Progress } from './ui/progress';
-import { ScrollArea } from './ui/scroll-area';
-import { Separator } from './ui/separator';
-import { Task } from '../types/Task';
-import { 
-  applyEisenhowerMatrix, 
-  applyEatTheFrog, 
-  apply80_20Rule, 
-  getCompositeprioritization,
-  PrioritizationResult 
-} from '../utils/prioritizationAlgorithms';
+  RefreshCw
+} from "lucide-react";
+import { Task } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
 
 interface TaskPrioritizationProps {
   tasks: Task[];
@@ -34,284 +27,339 @@ interface TaskPrioritizationProps {
   onTaskReorder: (reorderedTasks: Task[]) => void;
 }
 
+interface PrioritizationMethod {
+  id: string;
+  name: string;
+  description: string;
+  icon: React.ComponentType<any>;
+  color: string;
+}
+
+interface PrioritizedTask extends Task {
+  priorityScore: number;
+  eisenhowerQuadrant: 'urgent-important' | 'important-not-urgent' | 'urgent-not-important' | 'neither';
+  eatTheFrogScore: number;
+  paretoScore: number;
+  aiRecommendation: string;
+}
+
+const prioritizationMethods: PrioritizationMethod[] = [
+  {
+    id: 'eisenhower',
+    name: 'Eisenhower Matrix',
+    description: 'Categorize tasks by urgency and importance',
+    icon: Target,
+    color: 'blue'
+  },
+  {
+    id: 'eat-the-frog',
+    name: 'Eat the Frog',
+    description: 'Tackle the most challenging task first',
+    icon: Zap,
+    color: 'green'
+  },
+  {
+    id: 'pareto',
+    name: '80/20 Rule',
+    description: 'Focus on high-impact activities',
+    icon: TrendingUp,
+    color: 'purple'
+  },
+  {
+    id: 'ai-composite',
+    name: 'AI Composite',
+    description: 'Smart blend of all methodologies',
+    icon: Brain,
+    color: 'indigo'
+  }
+];
+
 export const TaskPrioritization = ({ 
   tasks, 
   onTaskPriorityUpdate, 
   onTaskReorder 
 }: TaskPrioritizationProps) => {
-  const [activeMethod, setActiveMethod] = useState<'eisenhower' | 'eat-the-frog' | '80-20-rule' | 'composite'>('composite');
-  const [results, setResults] = useState<{ [key: string]: PrioritizationResult[] }>({});
+  const [selectedMethod, setSelectedMethod] = useState('ai-composite');
+  const [prioritizedTasks, setPrioritizedTasks] = useState<PrioritizedTask[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [autoApply, setAutoApply] = useState(false);
+  const { toast } = useToast();
 
-  // Run analysis when tasks change
-  useEffect(() => {
-    if (tasks.length > 0) {
-      runPrioritizationAnalysis();
+  // Calculate Eisenhower Matrix quadrant
+  const calculateEisenhowerQuadrant = (task: Task): PrioritizedTask['eisenhowerQuadrant'] => {
+    const isUrgent = task.priority === 'high' || (task.dueDate && new Date(task.dueDate) <= new Date(Date.now() + 2 * 24 * 60 * 60 * 1000));
+    const isImportant = (task.impact || 0) >= 4 || task.priority === 'high';
+    
+    if (isUrgent && isImportant) return 'urgent-important';
+    if (!isUrgent && isImportant) return 'important-not-urgent';
+    if (isUrgent && !isImportant) return 'urgent-not-important';
+    return 'neither';
+  };
+
+  // Calculate Eat the Frog score (difficulty + procrastination tendency)
+  const calculateEatTheFrogScore = (task: Task): number => {
+    const complexity = task.complexity || 3;
+    const estimatedTime = task.estimatedDuration || 30;
+    const impact = task.impact || 3;
+    
+    // Higher score = more likely to be procrastinated on
+    return (complexity * 0.4) + (estimatedTime / 60 * 0.3) + (5 - impact) * 0.3;
+  };
+
+  // Calculate Pareto (80/20) score
+  const calculateParetoScore = (task: Task): number => {
+    const impact = task.impact || 3;
+    const complexity = task.complexity || 3;
+    const effort = task.estimatedDuration || 30;
+    
+    // Higher score = better impact-to-effort ratio
+    return (impact * impact) / (complexity + effort / 60);
+  };
+
+  // AI Composite scoring algorithm
+  const calculateAICompositeScore = (task: Task): number => {
+    const eisenhowerWeight = {
+      'urgent-important': 1.0,
+      'important-not-urgent': 0.8,
+      'urgent-not-important': 0.6,
+      'neither': 0.3
+    };
+
+    const quadrant = calculateEisenhowerQuadrant(task);
+    const frogScore = calculateEatTheFrogScore(task);
+    const paretoScore = calculateParetoScore(task);
+    
+    // Normalize scores
+    const eisenhowerScore = eisenhowerWeight[quadrant];
+    const normalizedFrogScore = Math.max(0, 1 - (frogScore - 1) / 4); // Invert - lower frog score = higher priority
+    const normalizedParetoScore = Math.min(1, paretoScore / 10);
+    
+    // Weighted combination
+    return (eisenhowerScore * 0.4) + (normalizedFrogScore * 0.3) + (normalizedParetoScore * 0.3);
+  };
+
+  // Generate AI recommendation
+  const generateAIRecommendation = (task: PrioritizedTask): string => {
+    const { eisenhowerQuadrant, eatTheFrogScore, paretoScore } = task;
+    
+    if (eisenhowerQuadrant === 'urgent-important') {
+      return "🔥 Do first - Critical and time-sensitive";
+    } else if (eisenhowerQuadrant === 'important-not-urgent') {
+      return "📅 Schedule - Important for long-term success";
+    } else if (eatTheFrogScore > 3.5) {
+      return "🐸 Eat the frog - Tackle when energy is highest";
+    } else if (paretoScore > 5) {
+      return "⚡ High impact - Great return on investment";
+    } else if (eisenhowerQuadrant === 'urgent-not-important') {
+      return "👥 Delegate if possible - Urgent but low impact";
+    } else {
+      return "🗑️ Consider eliminating - Low priority";
     }
-  }, [tasks]);
+  };
 
-  const runPrioritizationAnalysis = async () => {
+  // Analyze and prioritize tasks
+  const analyzeTasks = () => {
     setIsAnalyzing(true);
     
-    try {
-      // Run all prioritization methods
-      const eisenhowerResults = applyEisenhowerMatrix(tasks);
-      const eatFrogResults = applyEatTheFrog(tasks);
-      const paretoResults = apply80_20Rule(tasks);
-      const compositeResults = getCompositeprioritization(tasks);
-      
-      setResults({
-        eisenhower: eisenhowerResults,
-        'eat-the-frog': eatFrogResults,
-        '80-20-rule': paretoResults,
-        composite: compositeResults.recommendations,
+    setTimeout(() => {
+      const analyzed: PrioritizedTask[] = tasks.map(task => {
+        const eisenhowerQuadrant = calculateEisenhowerQuadrant(task);
+        const eatTheFrogScore = calculateEatTheFrogScore(task);
+        const paretoScore = calculateParetoScore(task);
+        const aiScore = calculateAICompositeScore(task);
+        
+        const prioritizedTask: PrioritizedTask = {
+          ...task,
+          priorityScore: selectedMethod === 'ai-composite' ? aiScore : 
+                        selectedMethod === 'eisenhower' ? (eisenhowerQuadrant === 'urgent-important' ? 1 : eisenhowerQuadrant === 'important-not-urgent' ? 0.8 : 0.5) :
+                        selectedMethod === 'eat-the-frog' ? (5 - eatTheFrogScore) / 5 :
+                        paretoScore / 10,
+          eisenhowerQuadrant,
+          eatTheFrogScore,
+          paretoScore,
+          aiRecommendation: ''
+        };
+        
+        prioritizedTask.aiRecommendation = generateAIRecommendation(prioritizedTask);
+        return prioritizedTask;
       });
-    } catch (error) {
-      console.error('Error running prioritization analysis:', error);
-    } finally {
+
+      // Sort by priority score (highest first)
+      const sorted = analyzed.sort((a, b) => b.priorityScore - a.priorityScore);
+      setPrioritizedTasks(sorted);
+      onTaskReorder(sorted);
       setIsAnalyzing(false);
+      
+      toast({
+        title: "Tasks Prioritized",
+        description: `Ranked ${sorted.length} tasks using ${prioritizationMethods.find(m => m.id === selectedMethod)?.name}`,
+      });
+    }, 1000);
+  };
+
+  useEffect(() => {
+    if (tasks.length > 0) {
+      analyzeTasks();
     }
+  }, [tasks, selectedMethod]);
+
+  const getQuadrantColor = (quadrant: PrioritizedTask['eisenhowerQuadrant']) => {
+    const colors = {
+      'urgent-important': 'bg-red-100 text-red-700 border-red-200',
+      'important-not-urgent': 'bg-blue-100 text-blue-700 border-blue-200',
+      'urgent-not-important': 'bg-yellow-100 text-yellow-700 border-yellow-200',
+      'neither': 'bg-gray-100 text-gray-700 border-gray-200'
+    };
+    return colors[quadrant];
   };
 
-  const applyPrioritization = (method: string) => {
-    const methodResults = results[method];
-    if (!methodResults) return;
-
-    // Apply suggested priorities to tasks
-    methodResults.forEach(result => {
-      if (result.originalPriority !== result.calculatedPriority) {
-        onTaskPriorityUpdate(result.taskId, result.calculatedPriority);
-      }
-    });
-
-    // Reorder tasks based on priority scores
-    const reorderedTasks = [...tasks].sort((a, b) => {
-      const aResult = methodResults.find(r => r.taskId === a.id);
-      const bResult = methodResults.find(r => r.taskId === b.id);
-      return (bResult?.score || 0) - (aResult?.score || 0);
-    });
-
-    onTaskReorder(reorderedTasks);
+  const getQuadrantLabel = (quadrant: PrioritizedTask['eisenhowerQuadrant']) => {
+    const labels = {
+      'urgent-important': 'Do First',
+      'important-not-urgent': 'Schedule',
+      'urgent-not-important': 'Delegate',
+      'neither': 'Eliminate'
+    };
+    return labels[quadrant];
   };
 
-  const getMethodIcon = (method: string) => {
-    switch (method) {
-      case 'eisenhower': return Grid3X3;
-      case 'eat-the-frog': return Fish;
-      case '80-20-rule': return BarChart3;
-      case 'composite': return Brain;
-      default: return Target;
-    }
+  const getPriorityIcon = (score: number) => {
+    if (score > 0.8) return <ArrowUp className="h-4 w-4 text-red-600" />;
+    if (score > 0.6) return <ArrowUp className="h-4 w-4 text-orange-600" />;
+    if (score > 0.4) return <ArrowDown className="h-4 w-4 text-yellow-600" />;
+    return <ArrowDown className="h-4 w-4 text-gray-600" />;
   };
-
-  const getMethodDescription = (method: string) => {
-    switch (method) {
-      case 'eisenhower': 
-        return 'Categorizes tasks by urgency and importance into 4 quadrants';
-      case 'eat-the-frog': 
-        return 'Prioritizes the most challenging tasks first when energy is highest';
-      case '80-20-rule': 
-        return 'Focuses on the 20% of tasks that deliver 80% of results';
-      case 'composite': 
-        return 'Combines all three methods for balanced prioritization';
-      default: 
-        return '';
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'urgent': return 'bg-red-100 text-red-800 border-red-200';
-      case 'high': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'medium': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'low': return 'bg-gray-100 text-gray-800 border-gray-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const getQuadrantColor = (quadrant: string) => {
-    if (quadrant.includes('Q1')) return 'bg-red-50 border-red-200';
-    if (quadrant.includes('Q2')) return 'bg-green-50 border-green-200';
-    if (quadrant.includes('Q3')) return 'bg-yellow-50 border-yellow-200';
-    if (quadrant.includes('Q4')) return 'bg-gray-50 border-gray-200';
-    return 'bg-gray-50 border-gray-200';
-  };
-
-  const currentResults = results[activeMethod] || [];
-  const hasChanges = currentResults.some(r => r.originalPriority !== r.calculatedPriority);
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Brain className="w-5 h-5" />
-              Smart Task Prioritization
-            </CardTitle>
-            <p className="text-sm text-gray-600 mt-1">
-              AI-powered task prioritization using proven methodologies
-            </p>
+    <div className="space-y-6">
+      {/* Method Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Brain className="h-5 w-5" />
+            Smart Task Prioritization
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {prioritizationMethods.map((method) => {
+              const Icon = method.icon;
+              const isSelected = selectedMethod === method.id;
+              
+              return (
+                <Card 
+                  key={method.id}
+                  className={`cursor-pointer transition-all ${
+                    isSelected ? 'ring-2 ring-indigo-500 bg-indigo-50' : 'hover:bg-gray-50'
+                  }`}
+                  onClick={() => setSelectedMethod(method.id)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Icon className={`h-5 w-5 text-${method.color}-600`} />
+                      <h4 className="font-medium text-sm">{method.name}</h4>
+                    </div>
+                    <p className="text-xs text-gray-600">{method.description}</p>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={runPrioritizationAnalysis}
-              disabled={isAnalyzing || tasks.length === 0}
-              variant="outline"
-              size="sm"
-            >
-              {isAnalyzing ? (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  Analyzing...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Analyze
-                </>
-              )}
-            </Button>
-            {hasChanges && (
-              <Button
-                onClick={() => applyPrioritization(activeMethod)}
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                size="sm"
-              >
-                <CheckCircle2 className="w-4 h-4 mr-2" />
-                Apply Changes
-              </Button>
+          
+          <Button 
+            onClick={analyzeTasks} 
+            disabled={isAnalyzing || tasks.length === 0}
+            className="w-full"
+          >
+            {isAnalyzing ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Analyzing Tasks...
+              </>
+            ) : (
+              <>
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Re-analyze with {prioritizationMethods.find(m => m.id === selectedMethod)?.name}
+              </>
             )}
-          </div>
-        </div>
-      </CardHeader>
+          </Button>
+        </CardContent>
+      </Card>
 
-      <CardContent>
-        {tasks.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <Target className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p className="font-medium">No tasks to prioritize</p>
-            <p className="text-sm mt-1">Add some tasks to see prioritization suggestions</p>
-          </div>
-        ) : (
-          <Tabs value={activeMethod} onValueChange={(value: any) => setActiveMethod(value)}>
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="composite" className="text-xs">
-                <Brain className="w-3 h-3 mr-1" />
-                Smart
-              </TabsTrigger>
-              <TabsTrigger value="eisenhower" className="text-xs">
-                <Grid3X3 className="w-3 h-3 mr-1" />
-                Eisenhower
-              </TabsTrigger>
-              <TabsTrigger value="eat-the-frog" className="text-xs">
-                <Fish className="w-3 h-3 mr-1" />
-                Eat Frog
-              </TabsTrigger>
-              <TabsTrigger value="80-20-rule" className="text-xs">
-                <BarChart3 className="w-3 h-3 mr-1" />
-                80/20
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Method Description */}
-            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-700">
-                <strong>{activeMethod.charAt(0).toUpperCase() + activeMethod.slice(1).replace('-', ' ')}:</strong>{' '}
-                {getMethodDescription(activeMethod)}
-              </p>
-            </div>
-
-            {/* Results for each method */}
-            {['composite', 'eisenhower', 'eat-the-frog', '80-20-rule'].map(method => (
-              <TabsContent key={method} value={method} className="mt-4">
-                <ScrollArea className="h-96">
-                  <div className="space-y-3">
-                    {(results[method] || []).map((result, index) => {
-                      const task = tasks.find(t => t.id === result.taskId);
-                      if (!task) return null;
-
-                      const priorityChanged = result.originalPriority !== result.calculatedPriority;
-                      
-                      return (
-                        <div
-                          key={result.taskId}
-                          className={`p-4 rounded-lg border-2 transition-all ${
-                            priorityChanged 
-                              ? 'bg-blue-50 border-blue-200' 
-                              : 'bg-white border-gray-200'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-gray-900 mb-1">
-                                {task.title}
-                              </h4>
-                              <div className="flex items-center gap-2 mb-2">
-                                <Badge className={getPriorityColor(result.originalPriority)}>
-                                  Current: {result.originalPriority}
-                                </Badge>
-                                {priorityChanged && (
-                                  <>
-                                    <ArrowRight className="w-4 h-4 text-gray-400" />
-                                    <Badge className={getPriorityColor(result.calculatedPriority)}>
-                                      Suggested: {result.calculatedPriority}
-                                    </Badge>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex flex-col items-end gap-1">
-                              <Badge variant="outline" className="text-xs">
-                                Score: {result.score.toFixed(1)}
-                              </Badge>
-                              <Badge variant="outline" className="text-xs">
-                                #{index + 1}
-                              </Badge>
-                            </div>
-                          </div>
-
-                          {/* Method-specific info */}
-                          {result.quadrant && (
-                            <div className={`p-2 rounded border mb-2 ${getQuadrantColor(result.quadrant)}`}>
-                              <p className="text-xs font-medium">{result.quadrant}</p>
-                            </div>
-                          )}
-                          
-                          {result.category && (
-                            <div className="p-2 bg-indigo-50 border border-indigo-200 rounded mb-2">
-                              <p className="text-xs font-medium text-indigo-800">{result.category}</p>
-                            </div>
-                          )}
-
-                          <p className="text-sm text-gray-600">{result.reasoning}</p>
-
-                          {/* Progress bar for score */}
-                          <div className="mt-3">
-                            <div className="flex justify-between text-xs text-gray-500 mb-1">
-                              <span>Priority Score</span>
-                              <span>{result.score.toFixed(1)}/10</span>
-                            </div>
-                            <Progress value={result.score * 10} className="h-2" />
-                          </div>
-                        </div>
-                      );
-                    })}
+      {/* Prioritized Task List */}
+      {prioritizedTasks.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              Prioritized Task List
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {prioritizedTasks.map((task, index) => (
+              <Card key={task.id} className="border-l-4 border-l-indigo-500">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-start gap-3">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs font-bold">
+                          #{index + 1}
+                        </Badge>
+                        {getPriorityIcon(task.priorityScore)}
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-gray-800">{task.title}</h4>
+                        <p className="text-sm text-gray-600 mt-1">{task.aiRecommendation}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-medium text-gray-700">
+                        Score: {(task.priorityScore * 100).toFixed(0)}%
+                      </div>
+                      <Progress value={task.priorityScore * 100} className="w-20 h-2 mt-1" />
+                    </div>
                   </div>
-                </ScrollArea>
-              </TabsContent>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    <Badge className={getQuadrantColor(task.eisenhowerQuadrant)}>
+                      {getQuadrantLabel(task.eisenhowerQuadrant)}
+                    </Badge>
+                    
+                    {selectedMethod === 'eat-the-frog' && task.eatTheFrogScore > 3 && (
+                      <Badge variant="outline" className="text-green-700 bg-green-50">
+                        🐸 Frog Task
+                      </Badge>
+                    )}
+                    
+                    {selectedMethod === 'pareto' && task.paretoScore > 5 && (
+                      <Badge variant="outline" className="text-purple-700 bg-purple-50">
+                        ⚡ High Impact
+                      </Badge>
+                    )}
+                    
+                    <Badge variant="outline" className="text-xs">
+                      {task.estimatedDuration || 30}min
+                    </Badge>
+                    
+                    <Badge variant="outline" className="text-xs">
+                      Impact: {task.impact || 3}/5
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
-          </Tabs>
-        )}
-      </CardContent>
-    </Card>
+          </CardContent>
+        </Card>
+      )}
+
+      {tasks.length === 0 && (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <Lightbulb className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-700 mb-2">No Tasks to Prioritize</h3>
+            <p className="text-gray-600">Create some tasks first, then come back to prioritize them using AI-powered methodologies.</p>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 };
-
-// Helper component for arrow icon
-const ArrowRight = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-  </svg>
-);
