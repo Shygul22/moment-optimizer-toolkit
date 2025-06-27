@@ -6,6 +6,8 @@ import { ResponsiveDashboard } from "@/components/ResponsiveDashboard";
 import { SimpleNotifications } from "@/components/SimpleNotifications";
 import { Navigation } from "@/components/Navigation";
 import { TaskPrioritization } from "@/components/TaskPrioritization";
+import { CoachingBookingComponent } from "@/components/CoachingBooking";
+import { AdminBookingPanel } from "@/components/AdminBookingPanel";
 import { Task, TimeSession } from "@shared/schema";
 import { TimeBlock } from "@/types/TimeTracking";
 
@@ -96,6 +98,19 @@ const Index = () => {
                   setTasks(reorderedTasks as Task[]);
                 }}
               />
+            </div>
+          )}
+          
+          {activeTab === "coaching" && (
+            <div className="space-y-4 lg:space-y-6">
+              <div className="text-center lg:text-left mb-4 lg:mb-6">
+                <h2 className="text-xl lg:text-3xl font-bold text-gray-800 mb-2">
+                  Productivity Coaching
+                </h2>
+                <p className="text-sm lg:text-base text-gray-600">Book personalized coaching sessions to improve your productivity</p>
+              </div>
+              <CoachingBookingComponent />
+              <AdminBookingPanel />
             </div>
           )}
           

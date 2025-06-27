@@ -33,6 +33,7 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  role: varchar("role").default("user").notNull(), // 'user' or 'admin'
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -95,6 +96,44 @@ export const insertProductivityMetricSchema = createInsertSchema(productivityMet
   id: true,
 });
 
+// Productivity coaching call bookings
+export const coachingBookings = pgTable("coaching_bookings", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  preferredDate: timestamp("preferred_date").notNull(),
+  preferredTime: varchar("preferred_time").notNull(),
+  duration: integer("duration").default(30), // in minutes
+  status: varchar("status").default("pending").notNull(), // 'pending', 'approved', 'rejected', 'completed'
+  adminNotes: text("admin_notes"),
+  meetingLink: text("meeting_link"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Meeting availability slots (for admin to set available times)
+export const availabilitySlots = pgTable("availability_slots", {
+  id: serial("id").primaryKey(),
+  date: timestamp("date").notNull(),
+  startTime: varchar("start_time").notNull(),
+  endTime: varchar("end_time").notNull(),
+  isBooked: boolean("is_booked").default(false),
+  bookingId: integer("booking_id").references(() => coachingBookings.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertCoachingBookingSchema = createInsertSchema(coachingBookings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAvailabilitySlotSchema = createInsertSchema(availabilitySlots).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type Task = typeof tasks.$inferSelect;
@@ -103,3 +142,7 @@ export type TimeSession = typeof timeSessions.$inferSelect;
 export type InsertTimeSession = z.infer<typeof insertTimeSessionSchema>;
 export type ProductivityMetric = typeof productivityMetrics.$inferSelect;
 export type InsertProductivityMetric = z.infer<typeof insertProductivityMetricSchema>;
+export type CoachingBooking = typeof coachingBookings.$inferSelect;
+export type InsertCoachingBooking = z.infer<typeof insertCoachingBookingSchema>;
+export type AvailabilitySlot = typeof availabilitySlots.$inferSelect;
+export type InsertAvailabilitySlot = z.infer<typeof insertAvailabilitySlotSchema>;

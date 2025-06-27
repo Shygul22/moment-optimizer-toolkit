@@ -2,7 +2,28 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
-import { insertTaskSchema, insertTimeSessionSchema } from "@shared/schema";
+import { insertTaskSchema, insertTimeSessionSchema, insertCoachingBookingSchema } from "@shared/schema";
+
+// Admin access middleware
+const isAdmin = async (req: any, res: any, next: any) => {
+  try {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    const userId = req.user.claims.sub;
+    const user = await storage.getUser(userId);
+    
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+    
+    next();
+  } catch (error) {
+    console.error("Error checking admin access:", error);
+    res.status(500).json({ message: "Failed to verify admin access" });
+  }
+};
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -158,6 +179,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching weekly activity:", error);
       res.status(500).json({ message: "Failed to fetch weekly activity" });
+    }
+  });
+
+  // Coaching booking routes - User access
+  app.get('/api/bookings', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const bookings = await storage.getCoachingBookings(userId);
+      res.json(bookings);
+    } catch (error) {
+      console.error("Error fetching bookings:", error);
+      res.status(500).json({ message: "Failed to fetch bookings" });
+    }
+  });
+
+  app.post('/api/bookings', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const bookingData = insertCoachingBookingSchema.parse({ ...req.body, userId });
+      const booking = await storage.createCoachingBooking(bookingData);
+      res.json(booking);
+    } catch (error) {
+      console.error("Error creating booking:", error);
+      res.status(500).json({ message: "Failed to create booking" });
+    }
+  });
+
+  // Admin-only booking management routes
+  app.get('/api/admin/bookings', isAdmin, async (req: any, res) => {
+    try {
+      const bookings = await storage.getCoachingBookings();
+      res.json(bookings);
+    } catch (error) {
+      console.error("Error fetching all bookings:", error);
+      res.status(500).json({ message: "Failed to fetch bookings" });
+    }
+  });
+
+  app.patch('/api/admin/bookings/:id', isAdmin, async (req: any, res) => {
+    try {
+      const bookingId = parseInt(req.params.id);
+      const updates = req.body;
+      const booking = await storage.updateCoachingBooking(bookingId, updates);
+      if (!booking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+      res.json(booking);
+    } catch (error) {
+      console.error("Error updating booking:", error);
+      res.status(500).json({ message: "Failed to update booking" });
     }
   });
 
@@ -446,4 +517,58 @@ function generateOptimizationReasoning(schedule: any[]) {
     'Balanced energy requirements throughout the day',
     'Considered your historical performance patterns'
   ];
+  
+  // Coaching booking routes
+  app.get("/api/bookings", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const bookings = await storage.getCoachingBookings(userId);
+      res.json(bookings);
+    } catch (error) {
+      console.error("Error fetching bookings:", error);
+      res.status(500).json({ message: "Failed to fetch bookings" });
+    }
+  });
+
+  app.post("/api/bookings", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const booking = await storage.createCoachingBooking({
+        ...req.body,
+        userId,
+        status: "pending",
+      });
+      res.json(booking);
+    } catch (error) {
+      console.error("Error creating booking:", error);
+      res.status(500).json({ message: "Failed to create booking" });
+    }
+  });
+
+  app.get("/api/admin/bookings", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const bookings = await storage.getCoachingBookings();
+      res.json(bookings);
+    } catch (error) {
+      console.error("Error fetching admin bookings:", error);
+      res.status(500).json({ message: "Failed to fetch bookings" });
+    }
+  });
+
+  app.patch("/api/admin/bookings/:id", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const bookingId = parseInt(req.params.id);
+      const booking = await storage.updateCoachingBooking(bookingId, req.body);
+      if (!booking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+      res.json(booking);
+    } catch (error) {
+      console.error("Error updating booking:", error);
+      res.status(500).json({ message: "Failed to update booking" });
+    }
+  });
+
+  const httpServer = createServer(app);
+  return httpServer;
 }

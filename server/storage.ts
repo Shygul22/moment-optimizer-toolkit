@@ -3,6 +3,8 @@ import {
   tasks,
   timeSessions,
   productivityMetrics,
+  coachingBookings,
+  availabilitySlots,
   type User,
   type UpsertUser,
   type Task,
@@ -11,6 +13,10 @@ import {
   type InsertTimeSession,
   type ProductivityMetric,
   type InsertProductivityMetric,
+  type CoachingBooking,
+  type InsertCoachingBooking,
+  type AvailabilitySlot,
+  type InsertAvailabilitySlot,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, count, sum, avg, sql } from "drizzle-orm";
@@ -47,6 +53,18 @@ export interface IStorage {
     productivity: number;
     trend: string;
   }[]>;
+
+  // Coaching booking operations
+  getCoachingBookings(userId?: string): Promise<CoachingBooking[]>;
+  createCoachingBooking(booking: InsertCoachingBooking): Promise<CoachingBooking>;
+  updateCoachingBooking(id: number, updates: Partial<InsertCoachingBooking>, userId?: string): Promise<CoachingBooking | undefined>;
+  deleteCoachingBooking(id: number, userId?: string): Promise<boolean>;
+  
+  // Availability slot operations
+  getAvailabilitySlots(date?: Date): Promise<AvailabilitySlot[]>;
+  createAvailabilitySlot(slot: InsertAvailabilitySlot): Promise<AvailabilitySlot>;
+  updateAvailabilitySlot(id: number, updates: Partial<InsertAvailabilitySlot>): Promise<AvailabilitySlot | undefined>;
+  deleteAvailabilitySlot(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -368,6 +386,129 @@ export class DatabaseStorage implements IStorage {
       return [];
     }
   }
+
+  // Coaching booking operations
+  async getCoachingBookings(userId?: string): Promise<CoachingBooking[]> {
+    try {
+      const whereCondition = userId ? eq(coachingBookings.userId, userId) : undefined;
+      return await db
+        .select()
+        .from(coachingBookings)
+        .where(whereCondition)
+        .orderBy(desc(coachingBookings.createdAt));
+    } catch (error) {
+      console.error('Error fetching coaching bookings:', error);
+      return [];
+    }
+  }
+
+  async createCoachingBooking(booking: InsertCoachingBooking): Promise<CoachingBooking> {
+    try {
+      const [newBooking] = await db
+        .insert(coachingBookings)
+        .values(booking)
+        .returning();
+      return newBooking;
+    } catch (error) {
+      console.error('Error creating coaching booking:', error);
+      throw error;
+    }
+  }
+
+  async updateCoachingBooking(id: number, updates: Partial<InsertCoachingBooking>, userId?: string): Promise<CoachingBooking | undefined> {
+    try {
+      const whereCondition = userId 
+        ? and(eq(coachingBookings.id, id), eq(coachingBookings.userId, userId))
+        : eq(coachingBookings.id, id);
+        
+      const [updatedBooking] = await db
+        .update(coachingBookings)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(whereCondition)
+        .returning();
+      return updatedBooking || undefined;
+    } catch (error) {
+      console.error('Error updating coaching booking:', error);
+      return undefined;
+    }
+  }
+
+  async deleteCoachingBooking(id: number, userId?: string): Promise<boolean> {
+    try {
+      const whereCondition = userId 
+        ? and(eq(coachingBookings.id, id), eq(coachingBookings.userId, userId))
+        : eq(coachingBookings.id, id);
+        
+      const result = await db.delete(coachingBookings).where(whereCondition);
+      return (result.rowCount ?? 0) > 0;
+    } catch (error) {
+      console.error('Error deleting coaching booking:', error);
+      return false;
+    }
+  }
+
+  // Availability slot operations
+  async getAvailabilitySlots(date?: Date): Promise<AvailabilitySlot[]> {
+    try {
+      let whereCondition = undefined;
+      if (date) {
+        const startOfDay = new Date(date);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(date);
+        endOfDay.setHours(23, 59, 59, 999);
+        whereCondition = and(
+          gte(availabilitySlots.date, startOfDay),
+          lte(availabilitySlots.date, endOfDay)
+        );
+      }
+      
+      return await db
+        .select()
+        .from(availabilitySlots)
+        .where(whereCondition)
+        .orderBy(availabilitySlots.date, availabilitySlots.startTime);
+    } catch (error) {
+      console.error('Error fetching availability slots:', error);
+      return [];
+    }
+  }
+
+  async createAvailabilitySlot(slot: InsertAvailabilitySlot): Promise<AvailabilitySlot> {
+    try {
+      const [newSlot] = await db
+        .insert(availabilitySlots)
+        .values(slot)
+        .returning();
+      return newSlot;
+    } catch (error) {
+      console.error('Error creating availability slot:', error);
+      throw error;
+    }
+  }
+
+  async updateAvailabilitySlot(id: number, updates: Partial<InsertAvailabilitySlot>): Promise<AvailabilitySlot | undefined> {
+    try {
+      const [updatedSlot] = await db
+        .update(availabilitySlots)
+        .set(updates)
+        .where(eq(availabilitySlots.id, id))
+        .returning();
+      return updatedSlot || undefined;
+    } catch (error) {
+      console.error('Error updating availability slot:', error);
+      return undefined;
+    }
+  }
+
+  async deleteAvailabilitySlot(id: number): Promise<boolean> {
+    try {
+      const result = await db.delete(availabilitySlots).where(eq(availabilitySlots.id, id));
+      return (result.rowCount ?? 0) > 0;
+    } catch (error) {
+      console.error('Error deleting availability slot:', error);
+      return false;
+    }
+  }
 }
 
 // Use in-memory storage for development when database is unavailable
@@ -375,8 +516,12 @@ class MemoryStorage implements IStorage {
   private users: Map<string, User> = new Map();
   private tasks: Map<number, Task> = new Map();
   private timeSessions: Map<number, TimeSession> = new Map();
+  private coachingBookings: Map<number, CoachingBooking> = new Map();
+  private availabilitySlots: Map<number, AvailabilitySlot> = new Map();
   private taskIdCounter = 1;
   private sessionIdCounter = 1;
+  private bookingIdCounter = 1;
+  private slotIdCounter = 1;
 
   async getUser(id: string): Promise<User | undefined> {
     return this.users.get(id);
@@ -389,6 +534,7 @@ class MemoryStorage implements IStorage {
       firstName: userData.firstName || null,
       lastName: userData.lastName || null,
       profileImageUrl: userData.profileImageUrl || null,
+      role: userData.role || "user",
       createdAt: userData.createdAt || new Date(),
       updatedAt: userData.updatedAt || new Date(),
     };
@@ -508,6 +654,87 @@ class MemoryStorage implements IStorage {
       { day: "Sat", hours: 3.2, tasks: 4, productivity: 70, trend: "down" },
       { day: "Sun", hours: 2.1, tasks: 2, productivity: 60, trend: "down" },
     ];
+  }
+
+  // Coaching booking operations
+  async getCoachingBookings(userId?: string): Promise<CoachingBooking[]> {
+    const bookings = Array.from(this.coachingBookings.values());
+    return userId ? bookings.filter(booking => booking.userId === userId) : bookings;
+  }
+
+  async createCoachingBooking(booking: InsertCoachingBooking): Promise<CoachingBooking> {
+    const newBooking: CoachingBooking = {
+      id: this.bookingIdCounter++,
+      userId: booking.userId,
+      title: booking.title,
+      description: booking.description || null,
+      preferredDate: booking.preferredDate,
+      preferredTime: booking.preferredTime,
+      duration: booking.duration || 30,
+      status: booking.status || "pending",
+      adminNotes: booking.adminNotes || null,
+      meetingLink: booking.meetingLink || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.coachingBookings.set(newBooking.id, newBooking);
+    return newBooking;
+  }
+
+  async updateCoachingBooking(id: number, updates: Partial<InsertCoachingBooking>, userId?: string): Promise<CoachingBooking | undefined> {
+    const booking = this.coachingBookings.get(id);
+    if (booking && (!userId || booking.userId === userId)) {
+      const updatedBooking = { ...booking, ...updates, updatedAt: new Date() };
+      this.coachingBookings.set(id, updatedBooking);
+      return updatedBooking;
+    }
+    return undefined;
+  }
+
+  async deleteCoachingBooking(id: number, userId?: string): Promise<boolean> {
+    const booking = this.coachingBookings.get(id);
+    if (booking && (!userId || booking.userId === userId)) {
+      return this.coachingBookings.delete(id);
+    }
+    return false;
+  }
+
+  // Availability slot operations
+  async getAvailabilitySlots(date?: Date): Promise<AvailabilitySlot[]> {
+    const slots = Array.from(this.availabilitySlots.values());
+    if (date) {
+      const targetDate = date.toDateString();
+      return slots.filter(slot => slot.date.toDateString() === targetDate);
+    }
+    return slots;
+  }
+
+  async createAvailabilitySlot(slot: InsertAvailabilitySlot): Promise<AvailabilitySlot> {
+    const newSlot: AvailabilitySlot = {
+      id: this.slotIdCounter++,
+      date: slot.date,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      isBooked: slot.isBooked || false,
+      bookingId: slot.bookingId || null,
+      createdAt: new Date(),
+    };
+    this.availabilitySlots.set(newSlot.id, newSlot);
+    return newSlot;
+  }
+
+  async updateAvailabilitySlot(id: number, updates: Partial<InsertAvailabilitySlot>): Promise<AvailabilitySlot | undefined> {
+    const slot = this.availabilitySlots.get(id);
+    if (slot) {
+      const updatedSlot = { ...slot, ...updates };
+      this.availabilitySlots.set(id, updatedSlot);
+      return updatedSlot;
+    }
+    return undefined;
+  }
+
+  async deleteAvailabilitySlot(id: number): Promise<boolean> {
+    return this.availabilitySlots.delete(id);
   }
 }
 

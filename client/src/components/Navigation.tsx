@@ -7,7 +7,8 @@ import {
   Timer, 
   BarChart3, 
   Target,
-  Menu
+  Menu,
+  Calendar
 } from "lucide-react";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -25,6 +26,7 @@ export const Navigation = ({ activeTab, setActiveTab }: NavigationProps) => {
     { id: "tasks", label: "Tasks", icon: CheckSquare, color: "text-blue-600", description: "Task management" },
     { id: "timer", label: "Timer", icon: Timer, color: "text-green-600", description: "Time tracking" },
     { id: "prioritize", label: "Prioritize", icon: Target, color: "text-purple-600", description: "AI task prioritization" },
+    { id: "coaching", label: "Coaching", icon: Calendar, color: "text-orange-600", description: "Productivity coaching" },
     { id: "dashboard", label: "Dashboard", icon: BarChart3, color: "text-indigo-600", description: "Productivity overview" },
   ];
 
@@ -89,7 +91,6 @@ export const Navigation = ({ activeTab, setActiveTab }: NavigationProps) => {
                               <div className="flex-1 text-left">
                                 <div className="flex items-center gap-2">
                                   <span className="font-medium">{tab.label}</span>
-                                  {tab.badge && <Badge variant="outline" className="text-xs">{tab.badge}</Badge>}
                                 </div>
                                 <p className="text-xs text-gray-500 mt-1">{tab.description}</p>
                               </div>
@@ -158,7 +159,6 @@ export const Navigation = ({ activeTab, setActiveTab }: NavigationProps) => {
                 >
                   <IconComponent className={`h-4 w-4 ${activeTab === tab.id ? "text-indigo-600" : tab.color}`} />
                   <span className="font-medium hidden md:inline text-sm lg:text-base">{tab.label}</span>
-                  {tab.badge && <Badge variant="outline" className="ml-1 text-xs hidden lg:inline">{tab.badge}</Badge>}
                 </Button>
               );
             })}
