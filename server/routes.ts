@@ -47,8 +47,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/tasks/:id', isAuthenticated, async (req: any, res) => {
     try {
       const taskId = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
       const updates = req.body;
-      const task = await storage.updateTask(taskId, updates);
+      const task = await storage.updateTask(taskId, updates, userId);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found or access denied" });
+      }
       res.json(task);
     } catch (error) {
       console.error("Error updating task:", error);
@@ -59,7 +63,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/tasks/:id', isAuthenticated, async (req: any, res) => {
     try {
       const taskId = parseInt(req.params.id);
-      const deleted = await storage.deleteTask(taskId);
+      const userId = req.user.claims.sub;
+      const deleted = await storage.deleteTask(taskId, userId);
+      if (!deleted) {
+        return res.status(404).json({ message: "Task not found or access denied" });
+      }
       res.json({ success: deleted });
     } catch (error) {
       console.error("Error deleting task:", error);
@@ -94,8 +102,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/sessions/:id', isAuthenticated, async (req: any, res) => {
     try {
       const sessionId = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
       const updates = req.body;
-      const session = await storage.updateTimeSession(sessionId, updates);
+      const session = await storage.updateTimeSession(sessionId, updates, userId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found or access denied" });
+      }
       res.json(session);
     } catch (error) {
       console.error("Error updating session:", error);

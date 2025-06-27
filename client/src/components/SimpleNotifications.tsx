@@ -107,15 +107,23 @@ export const SimpleNotifications = ({ tasks }: SimpleNotificationsProps) => {
         });
 
         // Request browser notification permission and show notifications
-        if (Notification.permission === 'granted') {
+        if ('Notification' in window && Notification.permission === 'granted') {
           newNotifications.forEach(notification => {
-            new Notification(notification.title, {
-              body: notification.message,
-              icon: '/favicon.ico',
-            });
+            try {
+              new Notification(notification.title, {
+                body: notification.message,
+                icon: '/favicon.ico',
+                tag: notification.id, // Prevent duplicate notifications
+                requireInteraction: false,
+              });
+            } catch (error) {
+              console.warn('Failed to show browser notification:', error);
+            }
           });
-        } else if (Notification.permission === 'default') {
-          Notification.requestPermission();
+        } else if ('Notification' in window && Notification.permission === 'default') {
+          Notification.requestPermission().catch(error => {
+            console.warn('Failed to request notification permission:', error);
+          });
         }
       }
     };

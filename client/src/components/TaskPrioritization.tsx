@@ -158,6 +158,11 @@ export const TaskPrioritization = ({
 
   // Analyze and prioritize tasks
   const analyzeTasks = () => {
+    if (tasks.length === 0) {
+      setPrioritizedTasks([]);
+      return;
+    }
+
     setIsAnalyzing(true);
     
     setTimeout(() => {
@@ -197,49 +202,8 @@ export const TaskPrioritization = ({
   };
 
   useEffect(() => {
-    if (tasks.length > 0) {
-      const timeoutId = setTimeout(() => {
-        setIsAnalyzing(true);
-        
-        const analyzed: PrioritizedTask[] = tasks.map(task => {
-          const eisenhowerQuadrant = calculateEisenhowerQuadrant(task);
-          const eatTheFrogScore = calculateEatTheFrogScore(task);
-          const paretoScore = calculateParetoScore(task);
-          const aiScore = calculateAICompositeScore(task);
-          
-          const prioritizedTask: PrioritizedTask = {
-            ...task,
-            priorityScore: selectedMethod === 'ai-composite' ? aiScore : 
-                          selectedMethod === 'eisenhower' ? (eisenhowerQuadrant === 'urgent-important' ? 1 : eisenhowerQuadrant === 'important-not-urgent' ? 0.8 : eisenhowerQuadrant === 'urgent-not-important' ? 0.6 : 0.3) :
-                          selectedMethod === 'eat-the-frog' ? Math.max(0, (5 - eatTheFrogScore) / 5) :
-                          Math.min(1, paretoScore / 10),
-            eisenhowerQuadrant,
-            eatTheFrogScore,
-            paretoScore,
-            aiRecommendation: ''
-          };
-          
-          prioritizedTask.aiRecommendation = generateAIRecommendation(prioritizedTask);
-          return prioritizedTask;
-        });
-
-        // Sort by priority score (highest first)
-        const sorted = analyzed.sort((a, b) => b.priorityScore - a.priorityScore);
-        setPrioritizedTasks(sorted);
-        onTaskReorder(sorted);
-        setIsAnalyzing(false);
-        
-        toast({
-          title: "Tasks Prioritized",
-          description: `Ranked ${sorted.length} tasks using ${prioritizationMethods.find(m => m.id === selectedMethod)?.name}`,
-        });
-      }, 300); // Debounce to prevent excessive re-analysis
-      
-      return () => clearTimeout(timeoutId);
-    } else {
-      setPrioritizedTasks([]);
-    }
-  }, [tasks, selectedMethod, onTaskReorder, toast]);
+    analyzeTasks();
+  }, [tasks, selectedMethod]);
 
   const getQuadrantColor = (quadrant: PrioritizedTask['eisenhowerQuadrant']) => {
     const colors = {

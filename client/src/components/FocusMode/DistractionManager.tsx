@@ -78,8 +78,9 @@ export const DistractionManager = ({
   useEffect(() => {
     return () => {
       timeoutIds.forEach(clearTimeout);
+      setTimeoutIds([]);
     };
-  }, [timeoutIds]);
+  }, []);
 
   const handleDistraction = (distractionId: string, intervention: string) => {
     setDistractions(prev => 

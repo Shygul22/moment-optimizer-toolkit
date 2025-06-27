@@ -23,13 +23,13 @@ export interface IStorage {
   // Task operations
   getTasks(userId: string): Promise<Task[]>;
   createTask(task: InsertTask): Promise<Task>;
-  updateTask(id: number, updates: Partial<InsertTask>): Promise<Task | undefined>;
-  deleteTask(id: number): Promise<boolean>;
+  updateTask(id: number, updates: Partial<InsertTask>, userId?: string): Promise<Task | undefined>;
+  deleteTask(id: number, userId?: string): Promise<boolean>;
   
   // Time session operations
   getTimeSessions(userId: string, limit?: number): Promise<TimeSession[]>;
   createTimeSession(session: InsertTimeSession): Promise<TimeSession>;
-  updateTimeSession(id: number, updates: Partial<InsertTimeSession>): Promise<TimeSession | undefined>;
+  updateTimeSession(id: number, updates: Partial<InsertTimeSession>, userId?: string): Promise<TimeSession | undefined>;
   
   // Dashboard data operations
   getDashboardStats(userId: string): Promise<{
@@ -99,12 +99,17 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async updateTask(id: number, updates: Partial<InsertTask>): Promise<Task | undefined> {
+  async updateTask(id: number, updates: Partial<InsertTask>, userId?: string): Promise<Task | undefined> {
     try {
+      // If userId is provided, ensure user can only update their own tasks
+      const whereCondition = userId 
+        ? and(eq(tasks.id, id), eq(tasks.userId, userId))
+        : eq(tasks.id, id);
+        
       const [updatedTask] = await db
         .update(tasks)
         .set(updates)
-        .where(eq(tasks.id, id))
+        .where(whereCondition)
         .returning();
       return updatedTask || undefined;
     } catch (error) {
@@ -113,9 +118,14 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async deleteTask(id: number): Promise<boolean> {
+  async deleteTask(id: number, userId?: string): Promise<boolean> {
     try {
-      const result = await db.delete(tasks).where(eq(tasks.id, id));
+      // If userId is provided, ensure user can only delete their own tasks
+      const whereCondition = userId 
+        ? and(eq(tasks.id, id), eq(tasks.userId, userId))
+        : eq(tasks.id, id);
+        
+      const result = await db.delete(tasks).where(whereCondition);
       return (result.rowCount ?? 0) > 0;
     } catch (error) {
       console.error('Error deleting task:', error);
@@ -151,12 +161,17 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async updateTimeSession(id: number, updates: Partial<InsertTimeSession>): Promise<TimeSession | undefined> {
+  async updateTimeSession(id: number, updates: Partial<InsertTimeSession>, userId?: string): Promise<TimeSession | undefined> {
     try {
+      // If userId is provided, ensure user can only update their own sessions
+      const whereCondition = userId 
+        ? and(eq(timeSessions.id, id), eq(timeSessions.userId, userId))
+        : eq(timeSessions.id, id);
+        
       const [updatedSession] = await db
         .update(timeSessions)
         .set(updates)
-        .where(eq(timeSessions.id, id))
+        .where(whereCondition)
         .returning();
       return updatedSession || undefined;
     } catch (error) {
@@ -405,9 +420,9 @@ class MemoryStorage implements IStorage {
     return newTask;
   }
 
-  async updateTask(id: number, updates: Partial<InsertTask>): Promise<Task | undefined> {
+  async updateTask(id: number, updates: Partial<InsertTask>, userId?: string): Promise<Task | undefined> {
     const task = this.tasks.get(id);
-    if (task) {
+    if (task && (!userId || task.userId === userId)) {
       const updatedTask = { ...task, ...updates };
       this.tasks.set(id, updatedTask);
       return updatedTask;
@@ -415,8 +430,12 @@ class MemoryStorage implements IStorage {
     return undefined;
   }
 
-  async deleteTask(id: number): Promise<boolean> {
-    return this.tasks.delete(id);
+  async deleteTask(id: number, userId?: string): Promise<boolean> {
+    const task = this.tasks.get(id);
+    if (task && (!userId || task.userId === userId)) {
+      return this.tasks.delete(id);
+    }
+    return false;
   }
 
   async getTimeSessions(userId: string, limit: number = 50): Promise<TimeSession[]> {
@@ -444,9 +463,9 @@ class MemoryStorage implements IStorage {
     return newSession;
   }
 
-  async updateTimeSession(id: number, updates: Partial<InsertTimeSession>): Promise<TimeSession | undefined> {
+  async updateTimeSession(id: number, updates: Partial<InsertTimeSession>, userId?: string): Promise<TimeSession | undefined> {
     const session = this.timeSessions.get(id);
-    if (session) {
+    if (session && (!userId || session.userId === userId)) {
       const updatedSession = { ...session, ...updates };
       this.timeSessions.set(id, updatedSession);
       return updatedSession;
