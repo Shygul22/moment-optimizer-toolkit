@@ -255,7 +255,12 @@ export const TaskPrioritization = ({
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <Icon className={`h-5 w-5 text-${method.color}-600`} />
+                      <Icon className={`h-5 w-5 ${
+                        method.color === 'blue' ? 'text-blue-600' :
+                        method.color === 'green' ? 'text-green-600' :
+                        method.color === 'purple' ? 'text-purple-600' :
+                        'text-indigo-600'
+                      }`} />
                       <h4 className="font-medium text-sm">{method.name}</h4>
                     </div>
                     <p className="text-xs text-gray-600">{method.description}</p>
