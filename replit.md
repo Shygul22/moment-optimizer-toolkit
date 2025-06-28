@@ -6,6 +6,13 @@ TimeFlow is a minimalist productivity platform focused on essential task managem
 
 ## Recent Changes
 
+### Database Migration to Supabase (June 2025)
+- **Complete Database Migration**: Successfully migrated entire Replit database to Supabase PostgreSQL
+- **Connection Update**: Switched from Neon serverless to standard PostgreSQL connection using pg driver
+- **Schema Migration**: Applied all existing database tables and relationships to Supabase instance
+- **Dependency Cleanup**: Removed Neon database dependencies and updated to Supabase configuration
+- **Direct Connection**: Eliminated fallback storage, now using direct Supabase PostgreSQL connection
+
 ### Notification & Prioritization Features Implementation (June 2025)
 - **Smart Notification System**: Real-time notifications for task reminders and schedule alerts
 - **Browser Notifications**: Permission-based browser notifications with customizable settings
@@ -49,10 +56,10 @@ TimeFlow is a minimalist productivity platform focused on essential task managem
 - **ORM**: Drizzle ORM with Zod validation
 
 ### Database Design
-- **Primary Database**: Supabase PostgreSQL with transaction pooling
+- **Primary Database**: Supabase PostgreSQL with direct connection pooling
 - **Schema Location**: `shared/schema.ts` for type safety across frontend/backend
 - **Migration System**: Drizzle Kit for database migrations
-- **Development Storage**: In-memory storage implementation for rapid prototyping
+- **Connection**: Direct PostgreSQL connection using pg driver (migrated from Replit database)
 
 ## Key Components
 
@@ -92,8 +99,8 @@ TimeFlow is a minimalist productivity platform focused on essential task managem
 4. Historical data improves AI recommendations and scheduling algorithms
 
 ### Data Persistence
-- **Development**: In-memory storage with predefined interface for easy database migration
-- **Production**: PostgreSQL with Drizzle ORM for type-safe database operations
+- **Production**: Supabase PostgreSQL with Drizzle ORM for type-safe database operations
+- **Connection**: Direct PostgreSQL connection using pg driver (migrated from Replit database)
 - **Schema**: Shared type definitions ensure consistency between frontend and backend
 
 ## External Dependencies

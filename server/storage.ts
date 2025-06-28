@@ -738,18 +738,7 @@ class MemoryStorage implements IStorage {
   }
 }
 
-// Try to use database storage, fallback to memory storage if database is unavailable
-let storage: IStorage;
-try {
-  storage = new DatabaseStorage();
-  // Test database connection
-  storage.getDashboardStats("test").catch(() => {
-    console.log("Database unavailable, using in-memory storage");
-    storage = new MemoryStorage();
-  });
-} catch (error) {
-  console.log("Database connection failed, using in-memory storage");
-  storage = new MemoryStorage();
-}
+// Use Supabase database storage directly (migrated from Replit database)
+const storage: IStorage = new DatabaseStorage();
 
 export { storage };
