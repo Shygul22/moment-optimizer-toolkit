@@ -1,148 +1,162 @@
-import {
-  pgTable,
-  text,
-  varchar,
-  timestamp,
-  jsonb,
-  index,
-  integer,
-  boolean,
-  serial,
-  decimal,
-} from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Session storage table.
-// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
-export const sessions = pgTable(
-  "sessions",
-  {
-    sid: varchar("sid").primaryKey(),
-    sess: jsonb("sess").notNull(),
-    expire: timestamp("expire").notNull(),
-  },
-  (table) => [index("IDX_session_expire").on(table.expire)],
-);
+// User types
+export interface User {
+  id: string;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  profileImageUrl: string | null;
+  role: string;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+}
 
-// User storage table.
-// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().notNull(),
-  email: varchar("email").unique(),
-  firstName: varchar("first_name"),
-  lastName: varchar("last_name"),
-  profileImageUrl: varchar("profile_image_url"),
-  role: varchar("role").default("user").notNull(), // 'user' or 'admin'
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+export interface UpsertUser {
+  id: string;
+  email?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  profileImageUrl?: string | null;
+  role?: string;
+}
+
+// Task types
+export interface Task {
+  id: number;
+  userId: string;
+  title: string;
+  priority: "high" | "medium" | "low";
+  completed: boolean;
+  createdAt: Date | null;
+  dueDate: Date | null;
+  estimatedDuration: number | null;
+  complexity: number | null;
+  impact: number | null;
+  context: string | null;
+  energyLevel: string | null;
+  aiScore: number | null;
+}
+
+export const insertTaskSchema = z.object({
+  userId: z.string(),
+  title: z.string().min(1).max(500),
+  priority: z.enum(["high", "medium", "low"]).default("medium"),
+  completed: z.boolean().default(false),
+  dueDate: z.date().optional(),
+  estimatedDuration: z.number().int().positive().optional(),
+  complexity: z.number().int().min(1).max(5).default(3),
+  impact: z.number().int().min(1).max(5).default(3),
+  context: z.string().max(50).default("work"),
+  energyLevel: z.enum(["low", "medium", "high"]).default("medium"),
+  aiScore: z.number().optional(),
 });
 
-// Tasks table
-export const tasks = pgTable("tasks", {
-  id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  title: varchar("title", { length: 500 }).notNull(),
-  priority: varchar("priority", { length: 10 }).notNull().default("medium"), // high, medium, low
-  completed: boolean("completed").notNull().default(false),
-  createdAt: timestamp("created_at").defaultNow(),
-  dueDate: timestamp("due_date"),
-  estimatedDuration: integer("estimated_duration"), // in minutes
-  complexity: integer("complexity").default(3), // 1-5
-  impact: integer("impact").default(3), // 1-5
-  context: varchar("context", { length: 50 }).default("work"), // work, personal, creative, administrative, learning
-  energyLevel: varchar("energy_level", { length: 10 }).default("medium"), // low, medium, high
-  aiScore: decimal("ai_score", { precision: 5, scale: 2 }),
-});
-
-// Time sessions table
-export const timeSessions = pgTable("time_sessions", {
-  id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  taskId: integer("task_id").references(() => tasks.id, { onDelete: "set null" }),
-  startTime: timestamp("start_time").notNull(),
-  endTime: timestamp("end_time"),
-  duration: integer("duration"), // in minutes
-  sessionType: varchar("session_type", { length: 20 }).notNull().default("focus"), // focus, break, planning, review
-  energyLevel: integer("energy_level").default(3), // 1-5
-  focusQuality: integer("focus_quality").default(3), // 1-5
-  interruptions: integer("interruptions").default(0),
-  notes: text("notes"),
-  completed: boolean("completed").notNull().default(false),
-});
-
-// Productivity metrics table
-export const productivityMetrics = pgTable("productivity_metrics", {
-  id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  date: timestamp("date").notNull(),
-  totalFocusTime: integer("total_focus_time").default(0), // minutes
-  averageFocusQuality: decimal("average_focus_quality", { precision: 3, scale: 2 }),
-  tasksCompleted: integer("tasks_completed").default(0),
-  productivityScore: decimal("productivity_score", { precision: 5, scale: 2 }),
-  goalAchievement: decimal("goal_achievement", { precision: 5, scale: 2 }), // percentage
-});
-
-export const insertTaskSchema = createInsertSchema(tasks).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertTimeSessionSchema = createInsertSchema(timeSessions).omit({
-  id: true,
-});
-
-export const insertProductivityMetricSchema = createInsertSchema(productivityMetrics).omit({
-  id: true,
-});
-
-// Productivity coaching call bookings
-export const coachingBookings = pgTable("coaching_bookings", {
-  id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  title: varchar("title").notNull(),
-  description: text("description"),
-  preferredDate: timestamp("preferred_date").notNull(),
-  preferredTime: varchar("preferred_time").notNull(),
-  duration: integer("duration").default(30), // in minutes
-  status: varchar("status").default("pending").notNull(), // 'pending', 'approved', 'rejected', 'completed'
-  adminNotes: text("admin_notes"),
-  meetingLink: text("meeting_link"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// Meeting availability slots (for admin to set available times)
-export const availabilitySlots = pgTable("availability_slots", {
-  id: serial("id").primaryKey(),
-  date: timestamp("date").notNull(),
-  startTime: varchar("start_time").notNull(),
-  endTime: varchar("end_time").notNull(),
-  isBooked: boolean("is_booked").default(false),
-  bookingId: integer("booking_id").references(() => coachingBookings.id),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const insertCoachingBookingSchema = createInsertSchema(coachingBookings).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertAvailabilitySlotSchema = createInsertSchema(availabilitySlots).omit({
-  id: true,
-  createdAt: true,
-});
-
-export type UpsertUser = typeof users.$inferInsert;
-export type User = typeof users.$inferSelect;
-export type Task = typeof tasks.$inferSelect;
 export type InsertTask = z.infer<typeof insertTaskSchema>;
-export type TimeSession = typeof timeSessions.$inferSelect;
+
+// Time session types
+export interface TimeSession {
+  id: number;
+  userId: string;
+  taskId: number | null;
+  startTime: Date;
+  endTime: Date | null;
+  duration: number | null;
+  sessionType: "focus" | "break" | "planning" | "review";
+  energyLevel: number | null;
+  focusQuality: number | null;
+  interruptions: number | null;
+  notes: string | null;
+  completed: boolean;
+}
+
+export const insertTimeSessionSchema = z.object({
+  userId: z.string(),
+  taskId: z.number().int().optional(),
+  startTime: z.date(),
+  endTime: z.date().optional(),
+  duration: z.number().int().optional(),
+  sessionType: z.enum(["focus", "break", "planning", "review"]).default("focus"),
+  energyLevel: z.number().int().min(1).max(5).default(3),
+  focusQuality: z.number().int().min(1).max(5).default(3),
+  interruptions: z.number().int().min(0).default(0),
+  notes: z.string().optional(),
+  completed: z.boolean().default(false),
+});
+
 export type InsertTimeSession = z.infer<typeof insertTimeSessionSchema>;
-export type ProductivityMetric = typeof productivityMetrics.$inferSelect;
+
+// Productivity metrics types
+export interface ProductivityMetric {
+  id: number;
+  userId: string;
+  date: Date;
+  totalFocusTime: number | null;
+  averageFocusQuality: number | null;
+  tasksCompleted: number | null;
+  productivityScore: number | null;
+  goalAchievement: number | null;
+}
+
+export const insertProductivityMetricSchema = z.object({
+  userId: z.string(),
+  date: z.date(),
+  totalFocusTime: z.number().int().min(0).default(0),
+  averageFocusQuality: z.number().optional(),
+  tasksCompleted: z.number().int().min(0).default(0),
+  productivityScore: z.number().optional(),
+  goalAchievement: z.number().optional(),
+});
+
 export type InsertProductivityMetric = z.infer<typeof insertProductivityMetricSchema>;
-export type CoachingBooking = typeof coachingBookings.$inferSelect;
+
+// Coaching booking types
+export interface CoachingBooking {
+  id: number;
+  userId: string;
+  title: string;
+  description: string | null;
+  preferredDate: Date;
+  preferredTime: string;
+  duration: number | null;
+  status: string;
+  adminNotes: string | null;
+  meetingLink: string | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+}
+
+export const insertCoachingBookingSchema = z.object({
+  userId: z.string(),
+  title: z.string().min(1),
+  description: z.string().optional(),
+  preferredDate: z.date(),
+  preferredTime: z.string(),
+  duration: z.number().int().positive().default(30),
+  status: z.string().default("pending"),
+  adminNotes: z.string().optional(),
+  meetingLink: z.string().optional(),
+});
+
 export type InsertCoachingBooking = z.infer<typeof insertCoachingBookingSchema>;
-export type AvailabilitySlot = typeof availabilitySlots.$inferSelect;
+
+// Availability slot types
+export interface AvailabilitySlot {
+  id: number;
+  date: Date;
+  startTime: string;
+  endTime: string;
+  isBooked: boolean | null;
+  bookingId: number | null;
+  createdAt: Date | null;
+}
+
+export const insertAvailabilitySlotSchema = z.object({
+  date: z.date(),
+  startTime: z.string(),
+  endTime: z.string(),
+  isBooked: z.boolean().default(false),
+  bookingId: z.number().int().optional(),
+});
+
 export type InsertAvailabilitySlot = z.infer<typeof insertAvailabilitySlotSchema>;
