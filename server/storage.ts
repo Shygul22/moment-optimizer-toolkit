@@ -738,7 +738,7 @@ class MemoryStorage implements IStorage {
   }
 }
 
-// Use Supabase database storage directly (migrated from Replit database)
+// Use Supabase database storage directly (no Replit database dependency)
 const storage: IStorage = new DatabaseStorage();
 
 export { storage };
