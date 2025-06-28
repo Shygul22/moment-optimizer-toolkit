@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { EnhancedTaskManager } from "@/components/EnhancedTaskManager";
 import { EnhancedTimeTracker } from "@/components/EnhancedTimeTracker";
 import { SmartScheduler } from "@/components/SmartScheduler";
@@ -8,30 +9,73 @@ import { Navigation } from "@/components/Navigation";
 import { TaskPrioritization } from "@/components/TaskPrioritization";
 import { CoachingBookingComponent } from "@/components/CoachingBooking";
 import { AdminBookingPanel } from "@/components/AdminBookingPanel";
+import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
+import { useFirebaseData } from "@/hooks/use-firebase-data";
 import { Task, TimeSession } from "@shared/schema";
 import { TimeBlock } from "@/types/TimeTracking";
+import { LogOut, User } from "lucide-react";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("tasks");
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [sessions, setSessions] = useState<TimeSession[]>([]);
   const [activeTimeBlock, setActiveTimeBlock] = useState<TimeBlock | null>(null);
+  
+  const { user, logout } = useFirebaseAuth();
+  const { tasks, timeSessions, loading } = useFirebaseData();
 
   const handleTasksUpdate = (updatedTasks: Task[]) => {
-    setTasks(updatedTasks);
+    // Firebase automatically syncs tasks, so this might not be needed
+    // but kept for component compatibility
   };
 
   const handleSessionComplete = (session: TimeSession) => {
-    setSessions(prev => [...prev, session]);
+    // Firebase automatically syncs sessions
   };
 
   const handleStartTimeBlock = (block: TimeBlock) => {
     setActiveTimeBlock(block);
-    setActiveTab("timer"); // Auto-switch to timer tab
+    setActiveTab("timer");
   };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      {/* User Header */}
+      <div className="bg-white/90 backdrop-blur-sm border-b px-4 py-2">
+        <div className="flex items-center justify-between max-w-7xl mx-auto">
+          <div className="flex items-center space-x-2">
+            <User className="h-5 w-5 text-gray-600" />
+            <span className="text-sm text-gray-700">
+              {user?.email || user?.displayName || 'User'}
+            </span>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleLogout}
+            className="flex items-center space-x-2"
+          >
+            <LogOut className="h-4 w-4" />
+            <span>Logout</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Navigation and Notifications */}
       <div className="flex items-center justify-between p-4 border-b bg-white/80 backdrop-blur-sm">
         <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
         <SimpleNotifications 
@@ -95,7 +139,7 @@ const Index = () => {
                   // Handle priority updates here
                 }}
                 onTaskReorder={(reorderedTasks: any[]) => {
-                  setTasks(reorderedTasks as Task[]);
+                  // Firebase handles task reordering automatically
                 }}
               />
             </div>
