@@ -1,0 +1,162 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Psychology & Counseling Theme - Light Mode */
+    --background: 180 100% 98%; /* Very light healing teal */
+    --foreground: 215 25% 27%; /* Deep Navy Blue */
+
+    --card: 180 50% 99%; /* Nearly white with teal hint */
+    --card-foreground: 215 25% 27%; /* Deep Navy Blue */
+
+    --popover: 180 50% 99%; /* Nearly white with teal hint */
+    --popover-foreground: 215 25% 27%; /* Deep Navy Blue */
+
+    --primary: 200 100% 40%; /* Calming Teal Blue */
+    --primary-foreground: 0 0% 100%; /* White */
+
+    --secondary: 159 60% 96%; /* Very Light Therapeutic Green */
+    --secondary-foreground: 215 25% 27%; /* Deep Navy Blue */
+
+    --muted: 180 50% 95%; /* Light healing teal instead of gray */
+    --muted-foreground: 215 13% 54%; /* Muted Navy */
+
+    --accent: 159 60% 51%; /* Therapeutic Green */
+    --accent-foreground: 0 0% 100%; /* White */
+
+    --destructive: 0 84% 60%; /* Soft Red for errors */
+    --destructive-foreground: 0 0% 100%; /* White */
+
+    --border: 180 50% 85%; /* Light healing teal border */
+    --input: 180 50% 92%; /* Light healing teal input */
+    --ring: 200 100% 40%; /* Calming Teal Blue */
+
+    --radius: 0.75rem; /* Slightly more rounded for friendlier feel */
+
+    /* Psychology specific colors */
+    --therapy-blue: 200 100% 40%;
+    --calming-green: 159 60% 51%;
+    --warm-sage: 180 50% 95%;
+    --trust-navy: 215 25% 27%;
+    --healing-teal: 180 50% 60%;
+  }
+
+  .dark {
+    /* Psychology & Counseling Theme - Dark Mode */
+    --background: 215 25% 12%; /* Deep Navy Background */
+    --foreground: 180 50% 96%; /* Light healing teal text */
+
+    --card: 215 25% 15%; /* Slightly lighter navy */
+    --card-foreground: 180 50% 96%; /* Light healing teal text */
+
+    --popover: 215 25% 15%; /* Slightly lighter navy */
+    --popover-foreground: 180 50% 96%; /* Light healing teal text */
+
+    --primary: 180 50% 60%; /* Healing Teal */
+    --primary-foreground: 215 25% 12%; /* Deep Navy */
+
+    --secondary: 215 25% 20%; /* Dark Navy Secondary */
+    --secondary-foreground: 180 50% 96%; /* Light healing teal text */
+
+    --muted: 180 30% 25%; /* Dark healing teal instead of gray */
+    --muted-foreground: 180 30% 70%; /* Light healing teal text */
+
+    --accent: 159 60% 51%; /* Therapeutic Green */
+    --accent-foreground: 215 25% 12%; /* Deep Navy */
+
+    --destructive: 0 62% 50%; /* Darker Red for errors */
+    --destructive-foreground: 180 50% 96%; /* Light healing teal text */
+
+    --border: 180 30% 30%; /* Dark healing teal border */
+    --input: 180 30% 30%; /* Dark healing teal input */
+    --ring: 180 50% 60%; /* Healing Teal */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  }
+}
+
+@layer utilities {
+  .fade-in-up {
+    animation: fade-in-up 0.8s ease-in-out forwards;
+  }
+  
+  /* Psychology Theme Utilities */
+  .therapy-gradient {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
+  }
+  
+  .calming-shadow {
+    box-shadow: 0 4px 20px hsla(var(--primary), 0.1);
+  }
+  
+  .healing-border {
+    border-color: hsl(var(--accent));
+  }
+  
+  .trust-text {
+    color: hsl(var(--trust-navy));
+  }
+}
+
+/* Preloader Styles */
+#preloader {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: opacity 0.5s ease-in-out;
+}
+
+#preloader.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 4px solid hsla(0, 0%, 100%, 0.3);
+  border-top-color: hsl(0 0% 100%);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Custom scrollbar for therapy theme */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--accent));
+}

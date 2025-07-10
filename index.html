@@ -1,0 +1,50 @@
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ZenJourney - Your Path to Inner Peace & Wellness</title>
+    <meta name="description" content="Transform your life with ZenJourney's mindful wellness coaching, meditation guidance, and mental health support. Begin your journey to inner peace today." />
+    <style>
+      #preloader {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        background: linear-gradient(135deg, hsl(200, 100%, 40%) 0%, hsl(159, 60%, 51%) 100%);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        transition: opacity 0.5s ease-in-out;
+      }
+      
+      #preloader.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      
+      .spinner {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        border: 4px solid hsla(0, 0%, 100%, 0.3);
+        border-top-color: hsl(0 0% 100%);
+        animation: spin 1s linear infinite;
+      }
+      
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="preloader">
+      <div class="spinner"></div>
+    </div>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
